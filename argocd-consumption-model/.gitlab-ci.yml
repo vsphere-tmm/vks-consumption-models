@@ -1,0 +1,83 @@
+stages:
+  - build
+  - update
+
+variables:
+  IMAGE_TAG: "${CI_COMMIT_SHA}"
+  REPO_NAME: "app"
+  REGISTRY: "harbor-test.content.tmm.broadcom.lab"
+  BUILDPLATFORM: "linux/amd64"
+
+# Build and push microservice images with Kaniko
+build_image:
+  stage: build
+  image:
+    name: harbor-test.content.tmm.broadcom.lab/library/kaniko-executor:debug
+    entrypoint: [""]
+  tags: ["k8s"]
+  script:
+    # Configure Docker auth for Harbor (Kaniko reads /kaniko/.docker/config.json)
+    - mkdir -p /kaniko/.docker
+    - |
+      cat > /kaniko/.docker/config.json <<EOF
+      {
+        "auths": {
+          "${REGISTRY}": {
+            "username": "${CI_REGISTRY_USER}",
+            "password": "${CI_REGISTRY_PASSWORD}"
+          }
+        }
+      }
+      EOF
+
+    # Loop services and build with Kaniko (no Docker daemon needed)
+    - |
+      for dir in microservices-demo/src/*/; do
+        service=$(basename "$dir")
+
+        if [ "$service" = "cartservice" ]; then
+          dockerfile_path="$dir/src/Dockerfile"
+          build_context="$dir/src"
+        else
+          dockerfile_path="$dir/Dockerfile"
+          build_context="$dir"
+        fi
+
+        dest="${REGISTRY}/${REPO_NAME}/${service}:${CI_COMMIT_SHA}"
+        cache_repo="${REGISTRY}/${REPO_NAME}/${service}-cache"
+
+        echo "Building ${service} -> ${dest}"
+        /kaniko/executor \
+          --context "${build_context}" \
+          --dockerfile "${dockerfile_path}" \
+          --destination "${dest}" \
+          --cache=true \
+          --cache-repo "${cache_repo}" \
+          --build-arg BUILDPLATFORM="${BUILDPLATFORM}" \
+          --custom-platform="${BUILDPLATFORM}" \
+          --snapshotMode=redo \
+          --use-new-run \
+          --verbosity=debug
+      done
+
+# Update Helm chart with the new image tag and push back to Git
+update_helm_chart:
+  stage: update
+  image: harbor-test.content.tmm.broadcom.lab/proxy2/docker/library/alpine:latest
+  tags: ["k8s"]
+  before_script:
+    - apk add --no-cache git curl bash ca-certificates
+    - curl -L https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -o /usr/local/bin/yq
+    - chmod +x /usr/local/bin/yq
+    - git config --global user.email "gitlab_admin_977e50@example.com"
+    - git config --global user.name "Administrator"
+  script:
+    - echo "Cloning Helm repo..."
+    - git clone "https://Administrator:${HELM_REPO_PAT}@gitlab.content.tmm.broadcom.lab/root/app-code.git"
+    - cd app-code
+    - git checkout main
+    - cd helm-charts
+    - yq eval ".images.tag = \"${CI_COMMIT_SHA}\"" -i values.yaml
+    - git add values.yaml
+    - git commit -m "Update image tag to ${CI_COMMIT_SHA} for ${CI_PROJECT_NAME}" || echo "No changes to commit."
+    - git push origin main

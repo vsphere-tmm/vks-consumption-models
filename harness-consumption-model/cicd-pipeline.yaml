@@ -1,0 +1,349 @@
+pipeline:
+  name: cicd-pipeline
+  identifier: stepgrouppipeline
+  projectIdentifier: testcdapp
+  orgIdentifier: default
+  tags: {}
+  properties:
+    ci:
+      codebase:
+        connectorRef: rkgithubconnector
+        repoName: microservice-demo
+        build: <+input>
+  stages:
+    - stage:
+        name: Build and Push
+        identifier: Build_and_Push
+        description: ""
+        type: CI
+        spec:
+          cloneCodebase: true
+          caching:
+            enabled: true
+            override: true
+          buildIntelligence:
+            enabled: true
+          infrastructure:
+            type: KubernetesDirect
+            spec:
+              connectorRef: harnessk8sconnector
+              namespace: build
+              initTimeout: 1h
+              automountServiceAccountToken: false
+              nodeSelector: {}
+              os: Linux
+          execution:
+            steps:
+              - step:
+                  type: Run
+                  name: Add passthrough repo
+                  identifier: Run_1
+                  spec:
+                    connectorRef: artifactorydockerconnector
+                    image: design-libraries-docker-dev-local.artifactory.vcfd.broadcom.net/alpine:latest
+                    shell: Sh
+                    command: |-
+                      #!/bin/bash
+                      PASSTHROUGH_REPO="dockerhub.packages.vcfd.broadcom.net"
+
+                      # Modify the Dockerfile base image
+                      DOCKERFILE="./src/adservice/Dockerfile"
+                                          
+                      sed -i "s|FROM --platform=\$BUILDPLATFORM eclipse-temurin:21.0.5_11-jdk@sha256:a20cfa6afdbf57ff2c4de77ae2d0e3725a6349f1936b5ad7c3d1b06f6d1b840a|FROM --platform=\$BUILDPLATFORM ${PASSTHROUGH_REPO}/eclipse-temurin:21.0.5_11-jdk@sha256:a20cfa6afdbf57ff2c4de77ae2d0e3725a6349f1936b5ad7c3d1b06f6d1b840a|g" ./src/adservice/Dockerfile
+                      sed -i "s|FROM eclipse-temurin:21.0.5_11-jre-alpine@sha256:4300bfe1e11f3dfc3e3512f39939f9093cf18d0e581d1ab1ccd0512f32fe33f0|FROM ${PASSTHROUGH_REPO}/eclipse-temurin:21.0.5_11-jre-alpine@sha256:4300bfe1e11f3dfc3e3512f39939f9093cf18d0e581d1ab1ccd0512f32fe33f0|g" ./src/adservice/Dockerfile
+
+                      cat ./src/adservice/Dockerfile
+
+                      # Modify the Dockerfile base image
+                                          
+                      DOCKERFILE="./src/checkoutservice/Dockerfile"
+                                          
+
+                      sed -i "s|FROM --platform=\$BUILDPLATFORM golang:1.23.4-alpine@sha256:c23339199a08b0e12032856908589a6d41a0dab141b8b3b21f156fc571a3f1d3|FROM --platform=\$BUILDPLATFORM ${PASSTHROUGH_REPO}/golang:1.23.4-alpine@sha256:c23339199a08b0e12032856908589a6d41a0dab141b8b3b21f156fc571a3f1d3|g" ./src/checkoutservice/Dockerfile
+                      cat ./src/checkoutservice/Dockerfile
+
+                      # Modify the Dockerfile base image                     
+
+                      DOCKERFILE="./src/currencyservice/Dockerfile"
+                                          
+
+                      sed -i "s|FROM --platform=\$BUILDPLATFORM node:20.18.1-alpine@sha256:24fb6aa7020d9a20b00d6da6d1714187c45ed00d1eb4adb01395843c338b9372|FROM --platform=\$BUILDPLATFORM ${PASSTHROUGH_REPO}/node:20.18.1-alpine@sha256:24fb6aa7020d9a20b00d6da6d1714187c45ed00d1eb4adb01395843c338b9372|g" ./src/currencyservice/Dockerfile
+                      sed -i "s|FROM alpine:3.20.3@sha256:1e42bbe2508154c9126d48c2b8a75420c3544343bf86fd041fb7527e017a4b4a|FROM ${PASSTHROUGH_REPO}/alpine:3.20.3@sha256:1e42bbe2508154c9126d48c2b8a75420c3544343bf86fd041fb7527e017a4b4a|g" ./src/currencyservice/Dockerfile
+
+                      cat ./src/currencyservice/Dockerfile
+
+                      DOCKERFILE="./src/emailservice/Dockerfile"
+                                          
+                      # Modify the Dockerfile base image
+                      sed -i "s|FROM --platform=\$BUILDPLATFORM python:3.12.8-alpine@sha256:54bec49592c8455de8d5983d984efff76b6417a6af9b5dcc8d0237bf6ad3bd20|FROM --platform=\$BUILDPLATFORM ${PASSTHROUGH_REPO}/python:3.12.8-alpine@sha256:54bec49592c8455de8d5983d984efff76b6417a6af9b5dcc8d0237bf6ad3bd20|g" ./src/emailservice/Dockerfile
+                      cat ./src/emailservice/Dockerfile
+
+                      DOCKERFILE="./src/frontend/Dockerfile"
+                                          
+                      # Modify the Dockerfile base image
+                      sed -i "s|FROM --platform=\$BUILDPLATFORM golang:1.23.4-alpine@sha256:c23339199a08b0e12032856908589a6d41a0dab141b8b3b21f156fc571a3f1d3|FROM --platform=\$BUILDPLATFORM ${PASSTHROUGH_REPO}/golang:1.23.4-alpine@sha256:c23339199a08b0e12032856908589a6d41a0dab141b8b3b21f156fc571a3f1d3|g" ./src/frontend/Dockerfile
+
+                      cat ./src/frontend/Dockerfile
+
+                      PASSTHROUGH_REPO="dockerhub.packages.vcfd.broadcom.net"
+                      DOCKERFILE="./src/loadgenerator/Dockerfile"
+                                          
+                      # Modify the Dockerfile base image
+                      sed -i "s|FROM --platform=\$BUILDPLATFORM python:3.12.8-alpine@sha256:54bec49592c8455de8d5983d984efff76b6417a6af9b5dcc8d0237bf6ad3bd20|FROM --platform=\$BUILDPLATFORM ${PASSTHROUGH_REPO}/python:3.12.8-alpine@sha256:54bec49592c8455de8d5983d984efff76b6417a6af9b5dcc8d0237bf6ad3bd20|g" ./src/loadgenerator/Dockerfile
+                      cat ./src/loadgenerator/Dockerfile
+
+                      DOCKERFILE="./src/paymentservice/Dockerfile"
+                                          
+                      # Modify the Dockerfile base image
+                      sed -i "s|FROM --platform=\$BUILDPLATFORM node:20.18.1-alpine@sha256:24fb6aa7020d9a20b00d6da6d1714187c45ed00d1eb4adb01395843c338b9372|FROM --platform=\$BUILDPLATFORM ${PASSTHROUGH_REPO}/node:20.18.1-alpine@sha256:24fb6aa7020d9a20b00d6da6d1714187c45ed00d1eb4adb01395843c338b9372|g" ./src/paymentservice/Dockerfile
+
+                      sed -i "s|FROM alpine:3.20.3@sha256:1e42bbe2508154c9126d48c2b8a75420c3544343bf86fd041fb7527e017a4b4a|FROM ${PASSTHROUGH_REPO}/alpine:3.20.3@sha256:1e42bbe2508154c9126d48c2b8a75420c3544343bf86fd041fb7527e017a4b4a|g" ./src/paymentservice/Dockerfile
+
+                      cat ./src/paymentservice/Dockerfile
+
+                      DOCKERFILE="./src/productcatalogservice/Dockerfile"
+                                          
+                      # Modify the Dockerfile base image
+                      sed -i "s|FROM --platform=\$BUILDPLATFORM golang:1.23.4-alpine@sha256:c23339199a08b0e12032856908589a6d41a0dab141b8b3b21f156fc571a3f1d3|FROM --platform=\$BUILDPLATFORM ${PASSTHROUGH_REPO}/golang:1.23.4-alpine@sha256:c23339199a08b0e12032856908589a6d41a0dab141b8b3b21f156fc571a3f1d3|g" ./src/productcatalogservice/Dockerfile
+                      cat ./src/productcatalogservice/Dockerfile
+
+                      PASSTHROUGH_REPO="dockerhub.packages.vcfd.broadcom.net"
+                      DOCKERFILE="./src/recommendationservice/Dockerfile"
+                                          
+                      # Modify the Dockerfile base image
+                      sed -i "s|FROM --platform=\$BUILDPLATFORM python:3.12.8-alpine@sha256:54bec49592c8455de8d5983d984efff76b6417a6af9b5dcc8d0237bf6ad3bd20|FROM --platform=\$BUILDPLATFORM ${PASSTHROUGH_REPO}/python:3.12.8-alpine@sha256:54bec49592c8455de8d5983d984efff76b6417a6af9b5dcc8d0237bf6ad3bd20|g" ./src/recommendationservice/Dockerfile
+                      cat ./src/recommendationservice/Dockerfile
+
+                      PASSTHROUGH_REPO="dockerhub.packages.vcfd.broadcom.net"
+                      DOCKERFILE="./src/shippingservice/Dockerfile"
+                                          
+                      # Modify the Dockerfile base image
+                      sed -i "s|FROM --platform=\$BUILDPLATFORM golang:1.23.4-alpine@sha256:c23339199a08b0e12032856908589a6d41a0dab141b8b3b21f156fc571a3f1d3|FROM --platform=\$BUILDPLATFORM ${PASSTHROUGH_REPO}/golang:1.23.4-alpine@sha256:c23339199a08b0e12032856908589a6d41a0dab141b8b3b21f156fc571a3f1d3|g" ./src/shippingservice/Dockerfile
+                      cat ./src/shippingservice/Dockerfile
+
+                      PASSTHROUGH_REPO="dockerhub.packages.vcfd.broadcom.net"
+                      DOCKERFILE="./src/shoppingassistantservice/Dockerfile"
+                                          
+                      # Modify the Dockerfile base image
+                      sed -i "s|FROM --platform=\$BUILDPLATFORM python:3.12.8-slim@sha256:123be5684f39d8476e64f47a5fddf38f5e9d839baff5c023c815ae5bdfae0df7|FROM --platform=\$BUILDPLATFORM ${PASSTHROUGH_REPO}/python:3.12.8-slim@sha256:123be5684f39d8476e64f47a5fddf38f5e9d839baff5c023c815ae5bdfae0df7|g" ./src/shoppingassistantservice/Dockerfile
+                      cat ./src/shoppingassistantservice/Dockerfile
+              - stepGroup:
+                  name: Build docker images
+                  identifier: Build_docker_images
+                  steps:
+                    - step:
+                        type: BuildAndPushDockerRegistry
+                        name: BuildAndPushDockerRegistry_1
+                        identifier: BuildAndPushDockerRegistry_1
+                        spec:
+                          connectorRef: artifactorydockerconnector
+                          repo: design-libraries-docker-dev-local.artifactory.vcfd.broadcom.net/adservice
+                          tags:
+                            - <+pipeline.executionId>
+                          caching: true
+                          dockerfile: ./src/adservice/Dockerfile
+                          context: ./src/adservice/
+                    - step:
+                        type: BuildAndPushDockerRegistry
+                        name: BuildAndPushDockerRegistry_2
+                        identifier: BuildAndPushDockerRegistry_2
+                        spec:
+                          connectorRef: artifactorydockerconnector
+                          repo: design-libraries-docker-dev-local.artifactory.vcfd.broadcom.net/cartservice
+                          tags:
+                            - <+pipeline.executionId>
+                          caching: true
+                          dockerfile: ./src/cartservice/src/Dockerfile
+                          context: ./src/cartservice/src
+                    - step:
+                        type: BuildAndPushDockerRegistry
+                        name: BuildAndPushDockerRegistry_3
+                        identifier: BuildAndPushDockerRegistry_3
+                        spec:
+                          connectorRef: artifactorydockerconnector
+                          repo: design-libraries-docker-dev-local.artifactory.vcfd.broadcom.net/checkoutservice
+                          tags:
+                            - <+pipeline.executionId>
+                          caching: true
+                          dockerfile: ./src/checkoutservice/Dockerfile
+                          context: ./src/checkoutservice/
+                    - step:
+                        type: BuildAndPushDockerRegistry
+                        name: BuildAndPushDockerRegistry_4
+                        identifier: BuildAndPushDockerRegistry_4
+                        spec:
+                          connectorRef: artifactorydockerconnector
+                          repo: design-libraries-docker-dev-local.artifactory.vcfd.broadcom.net/currencyservice
+                          tags:
+                            - <+pipeline.executionId>
+                          caching: true
+                          dockerfile: ./src/currencyservice/Dockerfile
+                          context: ./src/currencyservice/
+                    - step:
+                        type: BuildAndPushDockerRegistry
+                        name: BuildAndPushDockerRegistry_5
+                        identifier: BuildAndPushDockerRegistry_5
+                        spec:
+                          connectorRef: artifactorydockerconnector
+                          repo: design-libraries-docker-dev-local.artifactory.vcfd.broadcom.net/emailservice
+                          tags:
+                            - <+pipeline.executionId>
+                          caching: true
+                          dockerfile: ./src/emailservice/Dockerfile
+                          context: ./src/emailservice/
+                    - step:
+                        type: BuildAndPushDockerRegistry
+                        name: BuildAndPushDockerRegistry_6
+                        identifier: BuildAndPushDockerRegistry_6
+                        spec:
+                          connectorRef: artifactorydockerconnector
+                          repo: design-libraries-docker-dev-local.artifactory.vcfd.broadcom.net/frontend
+                          tags:
+                            - <+pipeline.executionId>
+                          caching: true
+                          dockerfile: ./src/frontend/Dockerfile
+                          context: ./src/frontend/
+                    - step:
+                        type: BuildAndPushDockerRegistry
+                        name: BuildAndPushDockerRegistry_7
+                        identifier: BuildAndPushDockerRegistry_7
+                        spec:
+                          connectorRef: artifactorydockerconnector
+                          repo: design-libraries-docker-dev-local.artifactory.vcfd.broadcom.net/loadgenerator
+                          tags:
+                            - <+pipeline.executionId>
+                          caching: true
+                          dockerfile: ./src/loadgenerator/Dockerfile
+                          context: ./src/loadgenerator/
+                    - step:
+                        type: BuildAndPushDockerRegistry
+                        name: BuildAndPushDockerRegistry_8
+                        identifier: BuildAndPushDockerRegistry_8
+                        spec:
+                          connectorRef: artifactorydockerconnector
+                          repo: design-libraries-docker-dev-local.artifactory.vcfd.broadcom.net/paymentservice
+                          tags:
+                            - <+pipeline.executionId>
+                          caching: true
+                          dockerfile: ./src/paymentservice/Dockerfile
+                          context: ./src/paymentservice/
+                    - step:
+                        type: BuildAndPushDockerRegistry
+                        name: BuildAndPushDockerRegistry_9
+                        identifier: BuildAndPushDockerRegistry_9
+                        spec:
+                          connectorRef: artifactorydockerconnector
+                          repo: design-libraries-docker-dev-local.artifactory.vcfd.broadcom.net/productcatalogservice
+                          tags:
+                            - <+pipeline.executionId>
+                          caching: true
+                          dockerfile: ./src/productcatalogservice/Dockerfile
+                          context: ./src/productcatalogservice/
+                    - step:
+                        type: BuildAndPushDockerRegistry
+                        name: BuildAndPushDockerRegistry_10
+                        identifier: BuildAndPushDockerRegistry_10
+                        spec:
+                          connectorRef: artifactorydockerconnector
+                          repo: design-libraries-docker-dev-local.artifactory.vcfd.broadcom.net/recommendationservice
+                          tags:
+                            - <+pipeline.executionId>
+                          caching: true
+                          dockerfile: ./src/recommendationservice/Dockerfile
+                          context: ./src/recommendationservice/
+                    - step:
+                        type: BuildAndPushDockerRegistry
+                        name: BuildAndPushDockerRegistry_11
+                        identifier: BuildAndPushDockerRegistry_11
+                        spec:
+                          connectorRef: artifactorydockerconnector
+                          repo: design-libraries-docker-dev-local.artifactory.vcfd.broadcom.net/shippingservice
+                          tags:
+                            - <+pipeline.executionId>
+                          caching: true
+                          dockerfile: ./src/shippingservice/Dockerfile
+                          context: ./src/shippingservice/
+                    - step:
+                        type: BuildAndPushDockerRegistry
+                        name: BuildAndPushDockerRegistry_12
+                        identifier: BuildAndPushDockerRegistry_12
+                        spec:
+                          connectorRef: artifactorydockerconnector
+                          repo: design-libraries-docker-dev-local.artifactory.vcfd.broadcom.net/shoppingassistantservice
+                          tags:
+                            - <+pipeline.executionId>
+                          caching: true
+                          dockerfile: ./src/shoppingassistantservice/Dockerfile
+                          context: ./src/shoppingassistantservice/
+              - step:
+                  type: Run
+                  name: Cleanup workspace
+                  identifier: Run_2
+                  spec:
+                    connectorRef: artifactorydockerconnector
+                    image: design-libraries-docker-dev-local.artifactory.vcfd.broadcom.net/alpine:latest
+                    shell: Sh
+                    command: rm -rf /harness/*
+              - step:
+                  type: Run
+                  name: Update Helm Chart
+                  identifier: Run_3
+                  spec:
+                    connectorRef: artifactorydockerconnector
+                    image: design-libraries-docker-dev-local.artifactory.vcfd.broadcom.net/alpine:latest
+                    shell: Sh
+                    command: |-
+                      apk update && apk add git
+                      git --version
+                      git clone https://github.com/rahulk010/helm-charts.git
+                      cd /harness/helm-charts
+                      #cd /harness/helm-charts
+                      git config user.name "Harness CI"
+                      git config user.email "ci@example.com"
+                      sed -i "s/tag: \".*\"/tag: \"<+pipeline.executionId>\"/g" values-vks-agents.yaml
+
+                      git add values-vks-agents.yaml
+                      git commit -m "Update image tag to <+pipeline.executionId> via Harness CI"
+                      git push https://${GITHUB_TOKEN}@github.com/rahulk010/helm-charts.git main
+                    envVariables:
+                      GITHUB_TOKEN: <+secrets.getValue("rk-github-secret")>
+    - stage:
+        name: Deploy
+        identifier: Deploy
+        description: ""
+        type: Deployment
+        spec:
+          deploymentType: Kubernetes
+          service:
+            serviceRef: appdeployservice
+          environment:
+            environmentRef: prodenv
+            deployToAll: false
+            infrastructureDefinitions:
+              - identifier: vkscluster
+          execution:
+            steps:
+              - step:
+                  name: Rollout Deployment
+                  identifier: rolloutDeployment
+                  type: K8sRollingDeploy
+                  timeout: 10m
+                  spec:
+                    skipDryRun: false
+                    pruningEnabled: false
+            rollbackSteps:
+              - step:
+                  name: Rollback Rollout Deployment
+                  identifier: rollbackRolloutDeployment
+                  type: K8sRollingRollback
+                  timeout: 10m
+                  spec:
+                    pruningEnabled: false
+        tags: {}
+        failureStrategies:
+          - onFailure:
+              errors:
+                - AllErrors
+              action:
+                type: StageRollback
+
