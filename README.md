@@ -16,6 +16,6 @@ This allows for:
 The Consumption Models below are examples of how Developers and Platform Engineers can use VCF to build, run and manage modern applications with VCF provided tooling or with third party tooling.
 
 The currently available Consumption Models are:
-Continuous Integration and Delivery with Harness
-Continuous Integration and Delivery with ArgoCD
-Observability with Prometheus and Grafana opensource operators
+* Continuous Integration and Delivery with Harness
+* Continuous Integration and Delivery with ArgoCD
+* Observability with Prometheus and Grafana opensource operators
