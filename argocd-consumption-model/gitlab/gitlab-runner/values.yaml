@@ -1,0 +1,65 @@
+gitlabUrl: https://gitlab.content.tmm.broadcom.lab
+runnerRegistrationToken: "<token obtained from GitLab UI>"
+
+# Used by the runner *deployment* so it can talk to GitLab/Registry over TLS
+certsSecretName: ad-ca
+
+image:
+  registry: registry.gitlab.com
+  image: gitlab-org/gitlab-runner
+  imagePullPolicy: IfNotPresent
+
+metrics:
+  enabled: true
+
+runners:
+  # Default image for jobs (can be overridden per-job in .gitlab-ci.yml)
+  image: ubuntu:22.04
+
+  executor: kubernetes
+  namespace: gitlab-runners
+  locked: false
+  runUntagged: true
+  requestConcurrency: 4
+  pollTimeout: 600
+  privileged: true
+  tags: ["k8s"]
+
+  # Run once in each job container to pick up CA certs 
+  # mounted at /usr/local/share/ca-certificates
+  preBuildScript: |
+    # Refresh CA trust so the internal CA from ad-ca is active
+    if command -v update-ca-certificates >/dev/null 2>&1; then
+      update-ca-certificates || true
+    fi
+
+  # Define TOML fragment for K8s options
+  config: |
+    [[runners]]
+      executor = "kubernetes"
+      [runners.kubernetes]
+        namespace    = "gitlab-runners"
+        image        = "ubuntu:22.04"
+        helper_image = "gitlab/gitlab-runner-helper:x86_64-latest"
+        poll_timeout = 600
+        privileged   = true
+      [[runners.kubernetes.volumes.secret]]
+        name       = "ad-ca"
+        mount_path = "/usr/local/share/ca-certificates"
+        read_only  = true
+
+securityContext:
+  runAsNonRoot: true
+  readOnlyRootFilesystem: false
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop: ["ALL"]
+
+rbac:
+  create: true
+  podSecurityPolicy:
+    enabled: false
+
+serviceAccount:
+  name: ""
+  imagePullSecrets: []

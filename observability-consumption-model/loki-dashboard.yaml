@@ -1,0 +1,19 @@
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: loki-k8s-pod-logs
+  namespace: grafana
+spec:
+  instanceSelector:
+    matchLabels:
+      dashboards: grafana
+
+  folder: Logging
+
+  # Use a dashboard ID from grafana.com
+  grafanaCom:
+    id: 15141   # "Loki Kubernetes Logs"
+
+  datasources:
+    - inputName: DS_LOKI
+      datasourceName: Loki

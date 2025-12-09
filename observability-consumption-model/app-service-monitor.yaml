@@ -1,0 +1,40 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: currencyservice
+  namespace: prometheus
+  labels:
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: currencyservice
+  namespaceSelector:
+    matchNames:
+    - my-app
+  endpoints:
+  - port: metrics-port
+    path: /metrics
+    scheme: http
+    interval: 30s
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: paymentservice
+  namespace: prometheus
+  labels:
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: paymentservice
+  namespaceSelector:
+    matchNames:
+    - my-app
+  endpoints:
+  - port: metrics-port
+    path: /metrics
+    scheme: http
+    interval: 30s

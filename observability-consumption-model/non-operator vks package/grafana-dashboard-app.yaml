@@ -1,0 +1,64 @@
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: app-metrics
+  namespace: grafana
+spec:
+  instanceSelector:
+    matchLabels:
+      dashboards: "grafana"
+  folder: "Applications"
+  json: |
+    {
+      "title": "App Metrics",
+      "timezone": "browser",
+      "schemaVersion": 38,
+      "version": 1,
+      "templating": {
+        "list": [
+          {
+            "type": "query",
+            "name": "service",
+            "label": "Service",
+            "datasource": {"type":"prometheus","uid":"prometheus"},
+            "query": "label_values(app_up, service)",
+            "refresh": 1
+          }
+        ]
+      },
+      "panels": [
+        {
+          "type": "stat",
+          "title": "App Up",
+          "datasource": {"type":"prometheus","uid":"prometheus"},
+          "gridPos": {"x":0,"y":0,"w":6,"h":4},
+          "targets": [{ "expr": "max_over_time(app_up{service=\"$service\"}[5m])" }],
+          "options": { "reduceOptions": {"calcs":["lastNotNull"]} }
+        },
+        {
+          "type": "graph",
+          "title": "Heartbeat rate (1/s)",
+          "datasource": {"type":"prometheus","uid":"prometheus"},
+          "gridPos": {"x":6,"y":0,"w":18,"h":8},
+          "targets": [{ "expr": "rate(app_heartbeat_total{service=\"$service\"}[2m])" }]
+        },
+        {
+          "type": "graph",
+          "title": "RSS Memory (bytes)",
+          "datasource": {"type":"prometheus","uid":"prometheus"},
+          "gridPos": {"x":0,"y":8,"w":12,"h":8},
+          "targets": [{ "expr": "process_resident_memory_bytes{service=\"$service\"}" }]
+        },
+        {
+          "type": "graph",
+          "title": "gRPC p95 latency (s)",
+          "datasource": {"type":"prometheus","uid":"prometheus"},
+          "gridPos": {"x":12,"y":8,"w":12,"h":8},
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.95, sum by (le, method) (rate(grpc_server_request_duration_seconds_bucket{service=\"$service\"}[5m])))"
+            }
+          ]
+        }
+      ]
+    }

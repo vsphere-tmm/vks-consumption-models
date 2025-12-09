@@ -1,0 +1,29 @@
+[ req ]
+default_bits = 2048
+prompt = no
+default_md = sha256
+req_extensions = req_ext
+distinguished_name = dn
+
+[ dn ]
+CN = *.content.tmm.broadcom.lab
+
+[ req_ext ]
+subjectAltName = @alt_names
+keyUsage = critical, digitalSignature, keyEncipherment
+extendedKeyUsage = serverAuth
+
+[ alt_names ]
+DNS.1 = *.content.tmm.broadcom.lab
+DNS.2 = gitlab.content.tmm.broadcom.lab
+DNS.3 = registry.content.tmm.broadcom.lab
+DNS.4 = minio.content.tmm.broadcom.lab
+DNS.5 = kas.content.tmm.broadcom.lab
+EOF
+
+# Generate key + CSR
+openssl genrsa -out wildcard.key 2048
+openssl req -new -key wildcard.key -out wildcard.csr -config wildcard.cnf
+
+# (optional) sanity-check the CSR SANs
+openssl req -in wildcard.csr -noout -text | sed -n '/Subject Alternative Name/,+1p'

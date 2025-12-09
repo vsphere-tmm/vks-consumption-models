@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: node-exporter
+  namespace: prometheus
+  labels:
+    app: node-exporter
+spec:
+  selector:
+    matchLabels:
+      app: node-exporter
+  template:
+    metadata:
+      labels:
+        app: node-exporter
+    spec:
+      # Scrape host metrics by looking at the host rootfs
+      tolerations:
+        - key: "node-role.kubernetes.io/master"
+          operator: "Exists"
+          effect: "NoSchedule"
+        - key: "node-role.kubernetes.io/control-plane"
+          operator: "Exists"
+          effect: "NoSchedule"
+      containers:
+        - name: node-exporter
+          image: quay.io/prometheus/node-exporter:v1.8.2
+          args:
+            - --path.rootfs=/host
+          ports:
+            - name: metrics
+              containerPort: 9100
+          volumeMounts:
+            - name: root
+              mountPath: /host
+              readOnly: true
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+      volumes:
+        - name: root
+          hostPath:
+            path: /
+            type: Directory
+

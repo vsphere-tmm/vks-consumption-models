@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: node-exporter
+  namespace: prometheus
+  labels:
+    app: node-exporter
+spec:
+  clusterIP: None
+  selector:
+    app: node-exporter
+  ports:
+    - name: metrics
+      port: 9100
+      targetPort: 9100
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: node-exporter
+  namespace: prometheus
+  labels:
+    release: prometheus
+spec:
+  namespaceSelector:
+    matchNames:
+      - prometheus
+  selector:
+    matchLabels:
+      app: node-exporter
+  endpoints:
+    - port: metrics
+      interval: 30s
+      scheme: http
+      relabelings:
+      - action: replace
+        sourceLabels: [ __meta_kubernetes_node_name]
+        targetLabel: nodename        

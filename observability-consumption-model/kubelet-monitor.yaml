@@ -1,0 +1,30 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: kubelet
+  namespace: prometheus
+  labels:
+    release: prometheus
+spec:
+  namespaceSelector:
+    matchNames:
+      - kube-system
+  selector:
+    matchLabels:
+      k8s-app: kubelet
+  endpoints:
+    - port: https-metrics      
+      interval: 30s
+      scheme: https
+      bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+      tlsConfig:
+        # NB: Kubelet serving certificates are node-specific and often use 
+        # opaque DNS names and non-standard CAs. 
+        # To keep the monitoring configuration portable and avoid modifying 
+        # control-plane or kubelet configuration, we scrape kubelet over HTTPS 
+        # with TLS verification disabled (insecureSkipVerify: true). 
+        # Node OS metrics are still validated and secured via node-exporter.        
+        insecureSkipVerify: true
+
+
+

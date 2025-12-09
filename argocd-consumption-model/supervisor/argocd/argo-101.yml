@@ -1,0 +1,44 @@
+apiVersion: data.packaging.carvel.dev/v1alpha1
+kind: Package
+metadata:
+  creationTimestamp: null
+  name: argocd-service.vsphere.vmware.com.1.0.1
+spec:
+  refName: argocd-service.vsphere.vmware.com
+  releasedAt: "2025-05-08T08:32:37Z"
+  template:
+    spec:
+      deploy:
+      - kapp: {}
+      fetch:
+      - imgpkgBundle:
+          image: projects.packages.broadcom.com/vsphere/supervisor/argocd-service/1.0.1/argocd-service:v1.0.1_vmware.1
+      template:
+      - ytt:
+          paths:
+          - config/sources
+          - config/overlays
+      - kbld:
+          paths:
+          - '-'
+          - .imgpkg/images.yml
+  valuesSchema:
+    openAPIv3:
+      additionalProperties: false
+      properties:
+        namespace:
+          default: argocd-service
+          description: argocd-service's namespace
+          type: string
+      type: object
+  version: 1.0.1
+---
+apiVersion: data.packaging.carvel.dev/v1alpha1
+kind: PackageMetadata
+metadata:
+  creationTimestamp: null
+  name: argocd-service.vsphere.vmware.com
+spec:
+  displayName: ArgoCD Service
+  longDescription: This service allows users to self-service ArgoCD instance in different namespaces.
+  shortDescription: This service allows users to self-service ArgoCD instance in different namespaces.

@@ -1,0 +1,1018 @@
+apiVersion: data.packaging.carvel.dev/v1alpha1
+kind: Package
+metadata:
+  name: harbor.tanzu.vmware.com.2.13.1+vmware.1-vks.1
+spec:
+  licenses:
+  - 'VMware''s End User License Agreement (Underlying OSS license: Apache License
+    2.0)'
+  refName: harbor.tanzu.vmware.com
+  releaseNotes: harbor 2.13.1 https://github.com/goharbor/harbor/releases/tag/v2.13.1
+  releasedAt: '2025-05-27T15:30:00Z'
+  template:
+    spec:
+      deploy:
+      - kapp:
+          rawOptions:
+          - --wait-timeout=5m
+          - --kube-api-qps=20
+          - --kube-api-burst=30
+      fetch:
+      - imgpkgBundle:
+          image: projects.packages.broadcom.com/vsphere/supervisor/packages/2025.6.17/vks-standard-packages@sha256:5198182821d3a461d5327dfc246177b6018ce4bcf9972ab0c4c231dd89cf6bcc
+      template:
+      - ytt:
+          paths:
+          - config/
+      - kbld:
+          paths:
+          - '-'
+          - .imgpkg/images.yml
+  valuesSchema:
+    openAPIv3:
+      properties:
+        caBundleSecretName:
+          description: The custom ca bundle secret, the secret must contain key named
+            "ca.crt", which will be injected into the trust store for core, jobservice,
+            registry, trivy components
+          type: string
+        cache:
+          description: The cache layer configurations for Harbor.
+          properties:
+            enabled:
+              default: false
+              description: Enable cache for Harbor.
+              type: boolean
+            expireHours:
+              default: 24
+              description: The expire hour of cache.
+              type: integer
+          type: object
+        contourHttpProxy:
+          description: The timeout policy configuration for httpproxy.
+          properties:
+            idleTimeout:
+              description: Timeout for how long the proxy should wait while there
+                is no activity during single request/response (for HTTP/1.1) or stream
+                (for HTTP/2).
+              type: string
+            timeout:
+              description: Timeout for receiving a response from the server after
+                processing a request from client.
+              type: string
+          type: object
+        core:
+          description: Core component related configuration.
+          properties:
+            replicas:
+              default: 1
+              description: The replicas for the core component.
+              type: integer
+            secret:
+              description: Secret is used when core server communicates with other
+                components.
+              type: string
+            xsrfKey:
+              description: The XSRF key. Must be a string of 32 chars.
+              type: string
+          required:
+          - secret
+          - xsrfKey
+          type: object
+        createNetworkPolicy:
+          default: false
+          description: Create a networkpolicy in Harbor's namespace when it's true.  This
+            is required to be true for Harbor Supervisor Service
+          type: boolean
+        database:
+          description: Database component related configuration.
+          properties:
+            external:
+              description: external database configurations
+              properties:
+                coreDatabase:
+                  default: registry
+                  description: The db name for external database
+                  type: string
+                host:
+                  description: The hostname for external database
+                  type: string
+                password:
+                  description: The password for external database
+                  type: string
+                port:
+                  default: '5432'
+                  description: The port for external database
+                  type: string
+                sslmode:
+                  defualt: disable
+                  description: sslmode for external database
+                  type: string
+                username:
+                  default: postgres
+                  description: The username for external database
+                  type: string
+              required:
+              - host
+              - port
+              - password
+              - username
+              - coreDatabase
+              type: object
+            maxIdleConns:
+              description: The initial value of maxIdleConns
+              type: integer
+            maxOpenConns:
+              description: The initial value of maxOpenConns
+              type: integer
+            password:
+              description: The initial password of the internal postgres database.
+              type: string
+            shmSizeLimit:
+              description: The initial value of shmSizeLimit
+              type: integer
+            type:
+              default: internal
+              description: The type of postgres dabasbase, either internal as default
+                , or external
+              type: string
+          required:
+          - password
+          - type
+          type: object
+        enableContourHttpProxy:
+          default: true
+          description: Use contour http proxy to expose Harbor's endpoints when it's
+            true.
+          type: boolean
+        enableNginxLoadBalancer:
+          default: false
+          description: Use nginx and LoadBalancer to expose Harbor's endpoints when
+            it's true.
+          type: boolean
+        exporter:
+          description: The configuration related to exporter.
+          properties:
+            cacheDuration:
+              description: The initial value of cacheDuration.
+              type: integer
+          type: object
+        harborAdminPassword:
+          description: The initial password of Harbor admin.
+          type: string
+        hostname:
+          default: harbor.yourdomain.com
+          description: The FQDN for accessing Harbor admin UI and Registry service.
+          type: string
+        jobservice:
+          description: Jobservice component related configuration.
+          properties:
+            replicas:
+              default: 1
+              description: The replicas for the jobservice component.
+              type: integer
+            secret:
+              description: Secret is used when job service communicates with other
+                components.
+              type: string
+          required:
+          - secret
+          type: object
+        logLevel:
+          default: info
+          description: The log level of core, exporter, jobservice, registry.
+          enum:
+          - debug
+          - info
+          - warning
+          - error
+          - fatal
+          type: string
+        metrics:
+          description: The metrics used by core, registry and exporter
+          properties:
+            core:
+              description: The core component related configuration.
+              properties:
+                path:
+                  default: /metrics
+                  description: The path of the metrics.
+                  type: string
+                port:
+                  default: 8001
+                  description: The port of the metrics.
+                  type: integer
+              type: object
+            enabled:
+              default: false
+              description: Enable the metrics when it's true
+              type: boolean
+            exporter:
+              description: The exporter component related configuration.
+              properties:
+                path:
+                  default: /metrics
+                  description: The path of the metrics.
+                  type: string
+                port:
+                  default: 8001
+                  description: The port of the metrics.
+                  type: integer
+              type: object
+            jobservice:
+              description: The jobservice component related configuration.
+              properties:
+                path:
+                  default: /metrics
+                  description: The path of the metrics.
+                  type: string
+                port:
+                  default: 8001
+                  description: The port of the metrics.
+                  type: integer
+              type: object
+            registry:
+              description: The registry component related configuration.
+              properties:
+                path:
+                  default: /metrics
+                  description: The path of the metrics.
+                  type: string
+                port:
+                  default: 8001
+                  description: The port of the metrics.
+                  type: integer
+              type: object
+          type: object
+        namespace:
+          default: harbor
+          description: The namespace to install Harbor.
+          type: string
+        network:
+          description: The network related configuration.
+          properties:
+            ipFamilies:
+              default: []
+              description: The array of network ipFamilies. Default [] is equivalent
+                to have both ["IPv4","IPv6"]. Or you can choose one of ["IPv4"] or
+                ["IPv6"]
+              type: array
+          type: object
+        persistence:
+          description: 'The persistence is always enabled and a default StorageClass
+
+            is needed in the k8s cluster to provision volumes dynamically.
+
+            Specify another StorageClass in the "storageClass" or set "existingClaim"
+
+            if you have already existing persistent volumes to use
+
+
+            For storing images and charts, you can also use "azure", "gcs", "s3",
+
+            "swift" or "oss". Set it in the "imageChartStorage" section'
+          properties:
+            imageChartStorage:
+              description: 'Define which storage backend is used for registry and
+                chartmuseum to store
+
+                images and charts. Refer to
+
+                https://github.com/docker/distribution/blob/master/docs/configuration.md#storage
+
+                for the detail.'
+              properties:
+                azure:
+                  description: Azure storage related configuration.
+                  properties:
+                    accountkey:
+                      default: base64encodedaccountkey
+                      description: Account key of azure storage.
+                      type: string
+                    accountname:
+                      default: accountname
+                      description: Account name of azure storage.
+                      type: string
+                    container:
+                      default: containername
+                      description: Container name of azure storage.
+                      type: string
+                    realm:
+                      default: core.windows.net
+                      description: Realm for azure storage.
+                      type: string
+                  required:
+                  - accountname
+                  - accountkey
+                  - container
+                  type: object
+                disableredirect:
+                  default: false
+                  description: 'Specify whether to disable `redirect` for images and
+                    chart storage, for
+
+                    backends which not supported it (such as using minio for `s3`
+                    storage type), please disable
+
+                    it. To disable redirects, simply set `disableredirect` to `true`
+                    instead.
+
+                    Refer to
+
+                    https://github.com/docker/distribution/blob/master/docs/configuration.md#redirect
+
+                    for the detail.'
+                  type: boolean
+                filesystem:
+                  description: Filesystem storage related configuration.
+                  properties:
+                    rootdirectory:
+                      default: /storage
+                      description: The rootdirectory in filesystem.
+                      type: string
+                  type: object
+                gcs:
+                  properties:
+                    bucket:
+                      default: bucketname
+                      description: Bucket name of gcs.
+                      type: string
+                    chunksize:
+                      default: 5242880
+                      description: Check size for gcs.
+                      type: integer
+                    encodedkey:
+                      default: base64-encoded-json-key-file
+                      description: The base64 encoded json file which contains the
+                        key
+                      type: string
+                    rootdirectory:
+                      default: null
+                      description: The rootdirectory in gcs.
+                      type: string
+                  required:
+                  - bucket
+                  - encodedkey
+                  type: object
+                oss:
+                  description: OSS storage related configuration.
+                  properties:
+                    accesskeyid:
+                      default: accesskeyid
+                      description: Access key id of oss.
+                      type: string
+                    accesskeysecret:
+                      default: accesskeysecret
+                      description: Access key secert of oss.
+                      type: string
+                    bucket:
+                      default: bucketname
+                      description: Bucket name of oss.
+                      type: string
+                    chunksize:
+                      default: null
+                      description: Chunk size for the oss, eg 10M.
+                      type: string
+                    encrypt:
+                      default: null
+                      description: Encrypt of oss.
+                      type: boolean
+                    endpoint:
+                      default: null
+                      description: Endpoint of oss.
+                      type: string
+                    internal:
+                      default: null
+                      description: Use the internal endpoint when it's true.
+                      type: boolean
+                    region:
+                      default: regionname
+                      description: Region of oss.
+                      type: string
+                    rootdirectory:
+                      default: null
+                      description: The rootdirectory in oss.
+                      type: string
+                    secure:
+                      default: null
+                      description: Secure of oss.
+                      type: boolean
+                  required:
+                  - accesskeyid
+                  - accesskeysecret
+                  - region
+                  - bucket
+                  type: object
+                s3:
+                  properties:
+                    accesskey:
+                      default: null
+                      description: Access key of s3.
+                      type: string
+                    bucket:
+                      default: bucketname
+                      description: Bucket name of s3.
+                      type: string
+                    chunksize:
+                      default: null
+                      description: Check size for s3.
+                      type: integer
+                    encrypt:
+                      default: false
+                      description: Encrypt for s3.
+                      type: boolean
+                    keyid:
+                      default: null
+                      description: Keyid of s3.
+                      type: string
+                    multipartcopychunksize:
+                      default: null
+                      description: multi part copy chunk size of s3.
+                      type: integer
+                    multipartcopymaxconcurrency:
+                      default: null
+                      description: multi part copy max concurrency of s3.
+                      type: integer
+                    multipartcopythresholdsize:
+                      default: null
+                      description: multi part copy threshold size of s3.
+                      type: integer
+                    region:
+                      default: us-west-1
+                      description: Region of s3.
+                      type: string
+                    regionendpoint:
+                      default: null
+                      description: Region endpoint of s3, eg http://myobjects.local
+                      type: string
+                    rootdirectory:
+                      default: null
+                      description: The rootdirectory in s3.
+                      type: string
+                    secretkey:
+                      default: null
+                      description: Secret key of s3.
+                      type: string
+                    secure:
+                      default: true
+                      description: Secure for s3.
+                      type: boolean
+                    skipverify:
+                      default: false
+                      description: skipverify for s3.
+                      type: boolean
+                    storageclass:
+                      default: STANDARD
+                      description: Storage class of s3.
+                      type: string
+                    v4auth:
+                      default: true
+                      description: Use v4auth for s3 when it's true.
+                      type: boolean
+                  required:
+                  - region
+                  - bucket
+                  type: object
+                swift:
+                  description: Swift storage related configuration.
+                  properties:
+                    accesskey:
+                      default: null
+                      description: Access key of swift.
+                      type: string
+                    authurl:
+                      default: https://storage.myprovider.com/v3/auth
+                      description: Auth url of swift.
+                      type: string
+                    authversion:
+                      default: null
+                      description: Auth version of swift.
+                      type: string
+                    chunksize:
+                      default: null
+                      description: Check size of swift, eg 5M.
+                      type: string
+                    container:
+                      default: containername
+                      description: Container of swift.
+                      type: string
+                    domain:
+                      default: null
+                      description: Domain of swift.
+                      type: string
+                    domainid:
+                      default: null
+                      description: Domain id of swift.
+                      type: string
+                    endpointtype:
+                      default: null
+                      description: Endpoint type of swift, eg public.
+                      type: string
+                    insecureskipverify:
+                      default: null
+                      description: Ignore the cert verify when it's true.
+                      type: boolean
+                    password:
+                      default: password
+                      description: Password of swift.
+                      type: string
+                    prefix:
+                      default: null
+                      description: Prefix path of swift.
+                      type: string
+                    region:
+                      default: null
+                      description: Region of swift.
+                      type: string
+                    secretkey:
+                      default: null
+                      description: Secret key of swift.
+                      type: string
+                    tempurlcontainerkey:
+                      default: null
+                      description: Use temp url container key of swift when it's true.
+                      type: boolean
+                    tempurlmethods:
+                      default: null
+                      description: Temp url methods of swift.
+                      type: string
+                    tenant:
+                      default: null
+                      description: Tenant of swift.
+                      type: string
+                    tenantid:
+                      default: null
+                      description: Tenant id of swift.
+                      type: string
+                    trustid:
+                      default: null
+                      description: Trust id of swift.
+                      type: string
+                    username:
+                      default: username
+                      description: Username of swift.
+                      type: string
+                  required:
+                  - authurl
+                  - username
+                  - password
+                  - container
+                  type: object
+                type:
+                  default: filesystem
+                  description: 'Specify the type of storage: "filesystem", "azure",
+                    "gcs", "s3", "swift",
+
+                    "oss" and fill the information needed in the corresponding section.
+                    The type
+
+                    must be "filesystem" if you want to use persistent volumes for
+                    registry
+
+                    and chartmuseum'
+                  type: string
+              type: object
+            persistentVolumeClaim:
+              description: PersistentVolumeClaim related configuration.
+              properties:
+                database:
+                  description: PersistentVolumeClaim related configuration for database
+                    component.
+                  properties:
+                    accessMode:
+                      default: ReadWriteOnce
+                      description: Access mode of the PVC.
+                      type: string
+                    existingClaim:
+                      default: ''
+                      description: 'Use the existing PVC which must be created manually
+                        before bound,
+
+                        and specify the "subPath" if the PVC is shared with other
+                        components'
+                      type: string
+                    size:
+                      default: 1Gi
+                      description: Size of the PVC.
+                      type: string
+                    storageClass:
+                      default: ''
+                      description: 'Specify the "storageClass" used to provision the
+                        volume. Or the default
+
+                        StorageClass will be used(the default).
+
+                        Set it to "-" to disable dynamic provisioning'
+                      type: string
+                    subPath:
+                      default: ''
+                      description: The "subPath" if the PVC is shared with other components.
+                      type: string
+                  type: object
+                jobservice:
+                  description: PersistentVolumeClaim related configuration for jobservice
+                    component.
+                  properties:
+                    jobLog:
+                      description: PersistentVolumeClaim for jobservice log
+                      properties:
+                        accessMode:
+                          default: ReadWriteOnce
+                          description: Access mode of the PVC.
+                          type: string
+                        existingClaim:
+                          default: ''
+                          description: 'Use the existing PVC which must be created
+                            manually before bound,
+
+                            and specify the "subPath" if the PVC is shared with other
+                            components'
+                          type: string
+                        size:
+                          default: 1Gi
+                          description: Size of the PVC.
+                          type: string
+                        storageClass:
+                          default: ''
+                          description: 'Specify the "storageClass" used to provision
+                            the volume. Or the default
+
+                            StorageClass will be used(the default).
+
+                            Set it to "-" to disable dynamic provisioning'
+                          type: string
+                        subPath:
+                          default: ''
+                          description: The "subPath" if the PVC is shared with other
+                            components.
+                          type: string
+                      type: object
+                  type: object
+                redis:
+                  description: PersistentVolumeClaim related configuration for redis
+                    component.
+                  properties:
+                    accessMode:
+                      default: ReadWriteOnce
+                      description: Access mode of the PVC.
+                      type: string
+                    existingClaim:
+                      default: ''
+                      description: 'Use the existing PVC which must be created manually
+                        before bound,
+
+                        and specify the "subPath" if the PVC is shared with other
+                        components'
+                      type: string
+                    size:
+                      default: 1Gi
+                      description: Size of the PVC.
+                      type: string
+                    storageClass:
+                      default: ''
+                      description: 'Specify the "storageClass" used to provision the
+                        volume. Or the default
+
+                        StorageClass will be used(the default).
+
+                        Set it to "-" to disable dynamic provisioning'
+                      type: string
+                    subPath:
+                      default: ''
+                      description: The "subPath" if the PVC is shared with other components.
+                      type: string
+                  type: object
+                registry:
+                  description: PersistentVolumeClaim related configuration for registry
+                    component.
+                  properties:
+                    accessMode:
+                      default: ReadWriteOnce
+                      description: Access mode of the PVC.
+                      type: string
+                    existingClaim:
+                      default: ''
+                      description: 'Use the existing PVC which must be created manually
+                        before bound,
+
+                        and specify the "subPath" if the PVC is shared with other
+                        components'
+                      type: string
+                    size:
+                      default: 10Gi
+                      description: Size of the PVC.
+                      type: string
+                    storageClass:
+                      default: ''
+                      description: 'Specify the "storageClass" used to provision the
+                        volume. Or the default
+
+                        StorageClass will be used(the default).
+
+                        Set it to "-" to disable dynamic provisioning'
+                      type: string
+                    subPath:
+                      default: ''
+                      description: The "subPath" if the PVC is shared with other components.
+                      type: string
+                  type: object
+                trivy:
+                  description: PersistentVolumeClaim related configuration for redis
+                    component.
+                  properties:
+                    accessMode:
+                      default: ReadWriteOnce
+                      description: Access mode of the PVC.
+                      type: string
+                    existingClaim:
+                      default: ''
+                      description: 'Use the existing PVC which must be created manually
+                        before bound,
+
+                        and specify the "subPath" if the PVC is shared with other
+                        components'
+                      type: string
+                    size:
+                      default: 5Gi
+                      description: Size of the PVC.
+                      type: string
+                    storageClass:
+                      default: ''
+                      description: 'Specify the "storageClass" used to provision the
+                        volume. Or the default
+
+                        StorageClass will be used(the default).
+
+                        Set it to "-" to disable dynamic provisioning'
+                      type: string
+                    subPath:
+                      default: ''
+                      description: The "subPath" if the PVC is shared with other components.
+                      type: string
+                  type: object
+              type: object
+          type: object
+        port:
+          description: Port related configuration.
+          properties:
+            https:
+              default: 443
+              description: The network port of the Envoy service in Contour or other
+                Ingress Controller.
+              type: integer
+          type: object
+        priorityClassName:
+          description: The priority class name for all harbor pods
+          type: string
+        proxy:
+          description: The proxy related configuration.
+          properties:
+            httpProxy:
+              default: ''
+              description: HTTP proxy URL.
+              type: string
+            httpsProxy:
+              default: ''
+              description: HTTPS proxy URL.
+              type: string
+            noProxy:
+              default: 127.0.0.1,localhost,.local,.internal
+              description: Ignore proxy for the domains.
+              type: string
+          type: object
+        pspNames:
+          default: 'null'
+          description: The PSP names used by Harbor pods. The names are separated
+            by ','. 'null' means all PSP can be used.
+          type: string
+        redis:
+          description: redis configurations
+          properties:
+            external:
+              description: external
+              properties:
+                addr:
+                  defualt: 192.168.0.2:6379
+                  description: The address with port of external redis
+                  type: string
+                cacheLayerDatabaseIndex:
+                  description: The split coreDatabase db into 2 seperate db, one is
+                    cacheLayerDatabaseIndex, but it can be configured to "7", this
+                    config is optional
+                  type: integer
+                coreDatabaseIndex:
+                  default: 0
+                  description: The coreDatabaseIndex must be 0 as the library Harbor
+                  type: integer
+                harborDatabaseIndex:
+                  description: The split coreDatabase db into 2 seperate db, one is
+                    harborDatabaseIndex, but it can be configured to "6", this config
+                    is optional
+                  type: integer
+                jobserviceDatabaseIndex:
+                  default: 1
+                  description: The jobservice redis db index, 1 as default
+                  type: integer
+                password:
+                  description: The password of external redis
+                  type: string
+                registryDatabaseIndex:
+                  default: 2
+                  description: The registry redis db index, 2 as default
+                  type: integer
+                sentinelMasterSet:
+                  description: The name of the set of Redis instances to monitor,
+                    it must be set to support redis+sentinel
+                  type: string
+                trivyAdapterIndex:
+                  default: 5
+                  description: The trivy redis db index, 5 as default
+                  type: integer
+              required:
+              - addr
+              - password
+              - coreDatabaseIndex
+              - jobserviceDatabaseIndex
+              - registryDatabaseIndex
+              - trivyAdapterIndex
+              type: object
+            type:
+              default: internal
+              description: The type of redis, either internal as default, or external
+              type: string
+          required:
+          - type
+          type: object
+        registry:
+          description: Registry component related configuration.
+          properties:
+            replicas:
+              default: 1
+              description: The replicas for the registry component.
+              type: integer
+            secret:
+              description: Secret is used to secure the upload state from client and
+                registry storage backend.
+              type: string
+          required:
+          - secret
+          type: object
+        secretKey:
+          description: The secret key used for encryption. Must be a string of 16
+            chars.
+          type: string
+        tlsCertificate:
+          description: The tls certificate for the harbor FQDN.
+          properties:
+            ca.crt:
+              description: The certificate of CA, this enables the download, link
+                on portal to download the certificate of CA. Note that ca.crt is a
+                key and not nested.
+              type: string
+            tls.crt:
+              description: The certificate. Note that tls.crt is a key and not nested.
+              type: string
+            tls.key:
+              description: The private key. Note that tls.key is a key and not nested.
+              type: string
+            tlsSecretLabels:
+              description: the labels you want to add for the harbor-tls secret generated
+                by the tlsCertificate
+              type: object
+          required:
+          - tls.crt
+          - tls.key
+          - ca.crt
+          type: object
+        tlsCertificateSecretName:
+          description: The name of the secret if you want to use your own TLS certificate
+            for harbor FQDN, which contains keys named "tls.crt" and "tls.key".
+          type: string
+        trace:
+          description: The tracing configuration for Harbor.
+          properties:
+            attributes:
+              description: The attributes is a key value dict contains user defined
+                attributes used to initialize trace provider.
+              type: object
+            enabled:
+              default: false
+              description: Enable tracing for Harbor.
+              type: boolean
+            jaeger:
+              description: Jaeger provider for Harbor tracing, it support two modes
+                - collector mode & agent mode.
+              properties:
+                agent_host:
+                  description: The agent_host of jaeger in agent mode.
+                  type: string
+                agent_port:
+                  description: The agent_port of jaeger in agent mode.
+                  type: integer
+                endpoint:
+                  default: http://hostname:14268/api/traces
+                  description: The endpoint of jaeger.
+                  type: string
+                password:
+                  description: The password of jaeger in collector mode.
+                  type: string
+                username:
+                  description: The username of jaeger in collector mode.
+                  type: string
+              type: object
+            namespace:
+              description: The namespace used to differentiate different harbor services.
+              type: string
+            otel:
+              description: Otel provider for Harbor tracing.
+              properties:
+                compression:
+                  default: false
+                  description: Whether to set compression when enabling tracing with
+                    Otel.
+                  type: boolean
+                endpoint:
+                  default: hostname:4318
+                  description: The endpoint of otel.
+                  type: string
+                insecure:
+                  default: true
+                  description: Whether to connect the collector insecurely.
+                  type: boolean
+                timeout:
+                  default: 10
+                  description: The max waiting time for the backend to process each
+                    spans batch, in seconds.
+                  type: integer
+                url_path:
+                  default: /v1/traces
+                  description: The url path of tracing with Otel.
+                  type: string
+              type: object
+            provider:
+              default: jaeger
+              description: The provider type of tracing, jaeger or otel.
+              type: string
+            sample_rate:
+              default: 1.0
+              description: Set sample_rate to 1 if you wanna sampling 100% of trace
+                data; set 0.5 if you wanna sampling 50% of trace data, and so forth.
+              type: number
+          type: object
+        trivy:
+          description: Trivy component related configuration.
+          properties:
+            enabled:
+              default: true
+              description: Whether to install Trivy scanner.
+              type: boolean
+            gitHubToken:
+              default: ''
+              description: the GitHub access token to download Trivy DB.
+              type: string
+            offlineScan:
+              default: false
+              description: The offlineScan option prevents Trivy from sending API
+                requests to identify dependencies.
+              type: boolean
+            replicas:
+              default: 1
+              description: The replicas for the trivy component.
+              type: integer
+            skipUpdate:
+              default: false
+              description: The flag to disable Trivy DB downloads from GitHub.
+              type: boolean
+            timeout:
+              default: ''
+              description: The timeout set for trivy scanner, it should be a number
+                followed by a letter like "h", "m", "s", or "ms", i.e. 1h, 5m, 60s,
+                1000ms.
+              type: string
+            tmpdir:
+              default: ''
+              description: If /tmp doesn't work for you, you can change it by setting
+                this environment variable. Normally would be /home/scanner
+              type: string
+          type: object
+      required:
+      - harborAdminPassword
+      - secretKey
+      title: harbor.tanzu.vmware.com.2.13.1 values schema
+  version: 2.13.1+vmware.1-vks.1
+---
+apiVersion: data.packaging.carvel.dev/v1alpha1
+kind: PackageMetadata
+metadata:
+  name: harbor.tanzu.vmware.com
+spec:
+  displayName: "harbor"
+  iconSVGBase64: PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHJvbGU9ImltZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHZpZXdCb3g9IjEuMDUgLTEuOTUgMzU5LjQxIDM2MS42NiI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJsaW5lYXItZ3JhZGllbnQiIHgxPSIyNjQuNzkiIHgyPSIyNjcuMjciIHkxPSI5NTIuMzkiIHkyPSI5NTIuMzkiIGdyYWRpZW50VHJhbnNmb3JtPSJtYXRyaXgoMzAuNDMgMCAwIC0zMC40MyAtNzk1NS4yMiAyOTI4NS43NSkiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiM2MGI5MzIiLz48c3RvcCBvZmZzZXQ9Ii4yOCIgc3RvcC1jb2xvcj0iIzYwYjkzMiIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzM2N2MzNCIvPjwvbGluZWFyR3JhZGllbnQ+PGxpbmVhckdyYWRpZW50IGlkPSJsaW5lYXItZ3JhZGllbnQtMiIgeDE9IjI2My43NyIgeDI9IjI2Ni4yNiIgeTE9Ijk1NS42NSIgeTI9Ijk1NS42NSIgZ3JhZGllbnRUcmFuc2Zvcm09Im1hdHJpeCgyNy4yMSAwIDAgLTI3LjIxIC03MDczLjg1IDI2MTY5LjQxKSIgeGxpbms6aHJlZj0iI2xpbmVhci1ncmFkaWVudCIvPjxsaW5lYXJHcmFkaWVudCBpZD0ibGluZWFyLWdyYWRpZW50LTMiIHgxPSIyNjMuMjgiIHgyPSIyNjUuNzYiIHkxPSI5NTMuNzQiIHkyPSI5NTMuNzQiIGdyYWRpZW50VHJhbnNmb3JtPSJtYXRyaXgoMjUuNzUgMCAwIC0yNS43NSAtNjY3MS4xMyAyNDgxMi4yMykiIHhsaW5rOmhyZWY9IiNsaW5lYXItZ3JhZGllbnQiLz48bGluZWFyR3JhZGllbnQgaWQ9ImxpbmVhci1ncmFkaWVudC00IiB4MT0iMjYzLjc3IiB4Mj0iMjY2LjI1IiB5MT0iOTUzLjIiIHkyPSI5NTMuMiIgZ3JhZGllbnRUcmFuc2Zvcm09Im1hdHJpeCgyNy4xIDAgMCAtMjcuMSAtNzA0MC45IDI2MTAyLjQ5KSIgeGxpbms6aHJlZj0iI2xpbmVhci1ncmFkaWVudCIvPjxsaW5lYXJHcmFkaWVudCBpZD0ibGluZWFyLWdyYWRpZW50LTUiIHgxPSIyNjIuNzMiIHgyPSIyNjUuMjEiIHkxPSI5NTQuMzQiIHkyPSI5NTQuMzQiIGdyYWRpZW50VHJhbnNmb3JtPSJtYXRyaXgoMjQuNCAwIDAgLTI0LjQgLTYzMDEuMzYgMjM1MjEuOTcpIiB4bGluazpocmVmPSIjbGluZWFyLWdyYWRpZW50Ii8+PGxpbmVhckdyYWRpZW50IGlkPSJsaW5lYXItZ3JhZGllbnQtNiIgeDE9IjI3Mi4xNCIgeDI9IjI3NC42MiIgeTE9Ijk1NS4xNSIgeTI9Ijk1NS4xNSIgZ3JhZGllbnRUcmFuc2Zvcm09InNjYWxlKDY2LjA5IC02Ni4wOSkgcm90YXRlKDM2LjUyIDE1ODguMTUzIDY4LjE0OCkiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiM0NTk2ZDgiLz48c3RvcCBvZmZzZXQ9Ii4yIiBzdG9wLWNvbG9yPSIjNDU5NmQ4Ii8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjZmZmIi8+PC9saW5lYXJHcmFkaWVudD48bGluZWFyR3JhZGllbnQgaWQ9ImxpbmVhci1ncmFkaWVudC03IiB4MT0iMjcwLjY1IiB4Mj0iMjczLjEzIiB5MT0iOTUyLjM4IiB5Mj0iOTUyLjM4IiBncmFkaWVudFRyYW5zZm9ybT0ic2NhbGUoNzcuOCAtNzcuOCkgcm90YXRlKC0xMS41NCAtNDU4Ny4yMDkgMTgwMy4zMjMpIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjNDE5NGQ3Ii8+PHN0b3Agb2Zmc2V0PSIuMiIgc3RvcC1jb2xvcj0iIzQxOTRkNyIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2ZmZiIvPjwvbGluZWFyR3JhZGllbnQ+PGxpbmVhckdyYWRpZW50IGlkPSJsaW5lYXItZ3JhZGllbnQtOCIgeDE9IjI3MC45NyIgeDI9IjI3My40NSIgeTE9Ijk1My43NSIgeTI9Ijk1My43NSIgZ3JhZGllbnRUcmFuc2Zvcm09InNjYWxlKDcxLjM1IC03MS4zNSkgcm90YXRlKDEwLjIzIDU0NzcuMzcgLTEwMjQuNjAyKSIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzQxOTRkNyIvPjxzdG9wIG9mZnNldD0iLjMzIiBzdG9wLWNvbG9yPSIjNDQ5NmQ4Ii8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjZmZmIi8+PC9saW5lYXJHcmFkaWVudD48Y2xpcFBhdGggaWQ9ImNsaXAtcGF0aCI+PHBhdGggZD0iTTE3NC40IDMwMi41MmwtNjguNjUtMzAuMjYtMy44MyA0My4yMSA3NS41IDIzLjk4LTMuMDItMzYuOTN6IiBjbGFzcz0iY2xzLTEiLz48L2NsaXBQYXRoPjxjbGlwUGF0aCBpZD0iY2xpcC1wYXRoLTIiPjxwYXRoIGQ9Ik0xMTkuMTkgMTM1LjM4aDM4LjU1djMyLjg5aC05LjE1di0xNGExMC4xMyAxMC4xMyAwIDEgMC0yMC4yNiAwdjE0aC05LjE1em0tNy43IDcybDU3LjIgMjUuMjEtMy45NC00OC4yNGg3LjQ5di0xNi4wOGgtNS41NXYtMzIuODloNS41NXYtOS40NWwtMzAuODYtMzAuMTl2LTIuMTJhMi45MSAyLjkxIDAgMCAwLTUuODIgMHYyLjEybC0zMC44NiAzMC4xOXY5LjQ1aDUuNTZ2MzIuODloLTUuNTZ2MTYuMTJoOC44MnoiIGNsYXNzPSJjbHMtMSIvPjwvY2xpcFBhdGg+PGNsaXBQYXRoIGlkPSJjbGlwLXBhdGgtMyI+PHBhdGggZD0iTTEwOC4xNCAyNDUuMjhsNjMuODggMjguMTYtLjk2LTExLjczLTYxLjk2LTI3LjMtLjk2IDEwLjg3eiIgY2xhc3M9ImNscy0xIi8+PC9jbGlwUGF0aD48Y2xpcFBhdGggaWQ9ImNsaXAtcGF0aC00Ij48cGF0aCBkPSJNMTA2LjQ2IDI2NC4yMWw2Ny4yMyAyOS42My0uOTYtMTEuNzItNjUuMzEtMjguNzgtLjk2IDEwLjg3eiIgY2xhc3M9ImNscy0xIi8+PC9jbGlwUGF0aD48Y2xpcFBhdGggaWQ9ImNsaXAtcGF0aC01Ij48cGF0aCBkPSJNMTEwLjc3IDIxNS40OGwtLjk2IDEwLjg3IDYwLjU0IDI2LjY4LS45NS0xMS43Mi01OC42My0yNS44M3oiIGNsYXNzPSJjbHMtMSIvPjwvY2xpcFBhdGg+PGNsaXBQYXRoIGlkPSJjbGlwLXBhdGgtNiI+PHBhdGggZD0iTTMxMy4xMyA2Ny41OWExNzUuMzEgMTc1LjMxIDAgMCAwLTI5Ljc1LTI4LjEzYy0xLjU3LTEuMTctMy4xOC0yLjMtNC43OS0zLjQyTDI1NiA1OS41bC04Mi4zNCA4NS42MyAxMTMuNDEtNTguNjggMjkuMDctMTVjLTEuMDEtMS4zMS0xLjk4LTIuNjItMy4wMS0zLjg2eiIgY2xhc3M9ImNscy0xIi8+PC9jbGlwUGF0aD48Y2xpcFBhdGggaWQ9ImNsaXAtcGF0aC03Ij48cGF0aCBkPSJNMzUzLjU5IDE3Ny42MWMwLTItLjE0LTQtLjIyLTUuOTNsLTMyLjIxLTIuMzEtMTQ3LjQ3LTEwLjU4TDMxOC4zNiAyMDlsMzAuNDEgMTAuNTVjLjA5LS4zNi4xOS0uNzEuMjgtMS4wOGExNzMuNjUgMTczLjY1IDAgMCAwIDQuNTctMzkuNDd2LTEuMzd6IiBjbGFzcz0iY2xzLTEiLz48L2NsaXBQYXRoPjxjbGlwUGF0aCBpZD0iY2xpcC1wYXRoLTgiPjxwYXRoIGQ9Ik0zNDguODQgMTM4LjYxYTE3Mi41NSAxNzIuNTUgMCAwIDAtMTMuODQtMzcuN2wtMzAuOTQgOS45NEwxNzUuOTIgMTUybDE0Mi00LjgzIDMyLjUtMS4xMWMtLjUtMi40OC0uOTktNC45OC0xLjU4LTcuNDV6IiBjbGFzcz0iY2xzLTEiLz48L2NsaXBQYXRoPjxzdHlsZT4uY2xzLTF7ZmlsbDpub25lfS5jbHMtMTN7ZmlsbDojNjk2NTY2fTwvc3R5bGU+PC9kZWZzPjxnIGlkPSJnMTIiPjxwYXRoIGlkPSJwYXRoMTQiIGZpbGw9IiNmZmYiIGQ9Ik0zMC44OSAxNzlhMTQ4Ljg3IDE0OC44NyAwIDEgMSAxNDguODcgMTQ4Ljg1QTE0OC44NyAxNDguODcgMCAwIDEgMzAuODkgMTc5Ii8+PGcgaWQ9ImczMCIgY2xpcC1wYXRoPSJ1cmwoI2NsaXAtcGF0aCkiPjxnIGlkPSJnMzIiPjxwYXRoIGlkPSJwYXRoNDYiIGZpbGw9InVybCgjbGluZWFyLWdyYWRpZW50KSIgZD0iTTE3NC40IDMwMi41MmwtNjguNjUtMzAuMjUtMy44MiA0My4yIDc1LjUgMjQtMy0zNi45MyIvPjwvZz48L2c+PGcgaWQ9Imc0OCIgY2xpcC1wYXRoPSJ1cmwoI2NsaXAtcGF0aC0yKSI+PGcgaWQ9Imc1MCI+PHBhdGggaWQ9InBhdGg2NCIgZmlsbD0idXJsKCNsaW5lYXItZ3JhZGllbnQtMikiIGQ9Ik0xMTkuMTkgMTM1LjM4aDM4LjU1djMyLjg5aC05LjE1di0xNGExMC4xMyAxMC4xMyAwIDEgMC0yMC4yNiAwdjE0aC05LjE1em0tNy43IDcybDU3LjIgMjUuMjEtMy45NC00OC4yNGg3LjQ5di0xNi4wOGgtNS41NXYtMzIuODloNS41NXYtOS40NWwtMzAuODYtMzAuMTl2LTIuMTJhMi45MSAyLjkxIDAgMCAwLTUuODIgMHYyLjEybC0zMC44NiAzMC4xOXY5LjQ1aDUuNTZ2MzIuODloLTUuNTZ2MTYuMTJoOC44MmwtMiAyMyIvPjwvZz48L2c+PGcgaWQ9Imc2NiIgY2xpcC1wYXRoPSJ1cmwoI2NsaXAtcGF0aC0zKSI+PGcgaWQ9Imc2OCI+PHBhdGggaWQ9InBhdGg4MiIgZmlsbD0idXJsKCNsaW5lYXItZ3JhZGllbnQtMykiIGQ9Ik0xMDguMTMgMjQ1LjI4TDE3MiAyNzMuNDRsLTEtMTEuNzItNjItMjcuMzEtMSAxMC44NyIvPjwvZz48L2c+PGcgaWQ9Imc4NCIgY2xpcC1wYXRoPSJ1cmwoI2NsaXAtcGF0aC00KSI+PGcgaWQ9Imc4NiI+PHBhdGggaWQ9InBhdGgxMDAiIGZpbGw9InVybCgjbGluZWFyLWdyYWRpZW50LTQpIiBkPSJNMTA2LjQ2IDI2NC4yMWw2Ny4yMyAyOS42My0xLTExLjcyLTY1LjMxLTI4Ljc4LTEgMTAuODciLz48L2c+PC9nPjxnIGlkPSJnMTAyIiBjbGlwLXBhdGg9InVybCgjY2xpcC1wYXRoLTUpIj48ZyBpZD0iZzEwNCI+PHBhdGggaWQ9InBhdGgxMTgiIGZpbGw9InVybCgjbGluZWFyLWdyYWRpZW50LTUpIiBkPSJNMTEwLjc3IDIxNS40OGwtMSAxMC44OEwxNzAuMzUgMjUzbC0xLTExLjcyLTU4LjYyLTI1LjgzIi8+PC9nPjwvZz48cGF0aCBpZD0icGF0aDEyMCIgZD0iTTMwNC4wNyAxMTAuODVsMzAuOTMtOS45NGMtLjExLS4yMi0uMjEtLjQ1LS4zMi0uNjZhMTc0LjQxIDE3NC40MSAwIDAgMC0xOC41NS0yOC44M2wtMjkuMDcgMTVhMTQyLjcxIDE0Mi43MSAwIDAgMSAxNi43MyAyMy44N2MuMS4xNy4xOC4zNS4yNy41MyIgY2xhc3M9ImNscy0xMyIvPjxwYXRoIGlkPSJwYXRoMTIyIiBkPSJNMzIxLjE1IDE2OS4zN2wzMi4yMSAyLjMxYTE3Mi44NiAxNzIuODYgMCAwIDAtMy0yNS41OWwtMzIuNSAxLjExYTE0MSAxNDEgMCAwIDEgMy4yNSAyMi4xNyIgY2xhc3M9ImNscy0xMyIvPjxwYXRoIGlkPSJwYXRoMTI0IiBkPSJNMTgyIDMyMC44MWMtNzguMiAwLTE0MS44My02My42Mi0xNDEuODMtMTQxLjgyUzEwMy44MiAzNy4xNiAxODIgMzcuMTZhMTQwLjkzIDE0MC45MyAwIDAgMSA3Ni4zIDIyLjM0TDI4MC44NSAzNkExNzIuODYgMTcyLjg2IDAgMCAwIDE4MiA1LjExQzg2LjE1IDUuMTEgOC4xNSA4My4xMSA4LjE1IDE3OXM3OCAxNzMuODUgMTczLjg1IDE3My44NWM4MS45IDAgMTUwLjY5LTU3IDE2OS0xMzMuMzJMMzIwLjYyIDIwOWMtMTMuOCA2My44NC03MC42OSAxMTEuODMtMTM4LjYgMTExLjgzIiBjbGFzcz0iY2xzLTEzIi8+PGcgaWQ9ImcxMjYiIGNsaXAtcGF0aD0idXJsKCNjbGlwLXBhdGgtNikiPjxnIGlkPSJnMTI4Ij48cGF0aCBpZD0icGF0aDE0MiIgZmlsbD0idXJsKCNsaW5lYXItZ3JhZGllbnQtNikiIGQ9Ik0zMTMuMTMgNjcuNTlhMTc1LjMxIDE3NS4zMSAwIDAgMC0yOS43NS0yOC4xM2MtMS41Ny0xLjE3LTMuMTgtMi4zLTQuNzktMy40MkwyNTYgNTkuNWwtODIuMzQgODUuNjMgMTEzLjQxLTU4LjY4IDI5LjA3LTE1Yy0xLTEuMjctMi0yLjU4LTMtMy44MiIvPjwvZz48L2c+PGcgaWQ9ImcxNDQiIGNsaXAtcGF0aD0idXJsKCNjbGlwLXBhdGgtNykiPjxnIGlkPSJnMTQ2Ij48cGF0aCBpZD0icGF0aDE2MCIgZmlsbD0idXJsKCNsaW5lYXItZ3JhZGllbnQtNykiIGQ9Ik0zNTMuNTkgMTc3LjYxYzAtMi0uMTQtNC0uMjItNS45M2wtMzIuMjEtMi4zMS0xNDcuNDctMTAuNThMMzE4LjM2IDIwOWwzMC40MSAxMC41NWMuMDktLjM2LjE5LS43MS4yOC0xLjA4YTE3My42NSAxNzMuNjUgMCAwIDAgNC41Ny0zOS40N3YtMS4zNyIvPjwvZz48L2c+PGcgaWQ9ImcxNjIiIGNsaXAtcGF0aD0idXJsKCNjbGlwLXBhdGgtOCkiPjxnIGlkPSJnMTY0Ij48cGF0aCBpZD0icGF0aDE3OCIgZmlsbD0idXJsKCNsaW5lYXItZ3JhZGllbnQtOCkiIGQ9Ik0zNDguODQgMTM4LjYxYTE3Mi41NSAxNzIuNTUgMCAwIDAtMTMuODQtMzcuN2wtMzAuOTQgOS45NEwxNzUuOTIgMTUybDE0Mi00LjgzIDMyLjUtMS4xMWMtLjQ4LTIuNTEtMS01LTEuNTYtNy40OCIvPjwvZz48L2c+PC9nPjwvc3ZnPg==
+  longDescription: "Harbor is an open source trusted cloud native registry project that stores, signs, and scans content. Harbor extends the open source Docker Distribution by adding the functionalities usually required by users such as security, identity and management."
+  shortDescription: "OCI Registry"
+  providerName: VMware
+  maintainers:
+    - name: Miner Yang
+  categories:
+    - "OCI registry"
+  supportDescription: https://goharbor.io

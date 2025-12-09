@@ -1,0 +1,24 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: kube-apiserver
+  namespace: prometheus
+  labels:
+    release: prometheus
+spec:
+  jobLabel: k8s-app
+  namespaceSelector:
+    matchNames:
+    - default
+    - kube-system
+  selector:
+    matchLabels:
+      component: apiserver
+      provider: kubernetes
+  endpoints:
+  - port: https
+    interval: 30s
+    scheme: https
+    tlsConfig:
+      caFile: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+    bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token

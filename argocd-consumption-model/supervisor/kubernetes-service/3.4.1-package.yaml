@@ -1,0 +1,183 @@
+apiVersion: data.packaging.carvel.dev/v1alpha1
+kind: Package
+metadata:
+  name: tkg.vsphere.vmware.com.3.4.1+v1.33
+  annotations:
+    appplatform.vmware.com/source-version-upgrade-constraints: '>=3.1.0'
+    appplatform.vmware.com/compatibility-check_service: upgrade-compatibility-service
+    appplatform.vmware.com/compatibility-check_port: "80"
+    appplatform.vmware.com/compatibility-check_protocol: https
+    appplatform.vmware.com/compatibility-check_url: ucs/v2/compatibility
+    appplatform.vmware.com/compatibility-check_method: POST
+    appplatform.vmware.com/compatibility-check_ca_secret: ucs-service-ca-cert
+    appplatform.vmware.com/required_capability.0: TKG_SupervisorService_Supported
+    appplatform.vmware.com/compatibility-check_data: |
+      [
+        {
+          "version": "v1",
+          "requires": {
+            "tanzu-kubernetes-release": [
+              {
+                "#data_object_or_protocol": "data object",
+                "predicate": {
+                  "operation": "not",
+                  "arguments": [
+                    {
+                      "operation": "isVersionSatisfied",
+                      "arguments": {
+                        "initiator": "vmware.com/gccontroller",
+                        "receiver": "ovf",
+                        "versions": [
+                          "v1.31.1+vmware.2-fips-vkr.2"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "offers": {
+            "VKS": {
+              "versions": {
+                "vmware.com/gcccontroller": [
+                  "3.4.0"
+                ]
+              }
+            },
+            "TKGSvS": {
+              "versions": {
+                "vmware.com/gccontroller": [
+                  "3.0.0",
+                  "3.1.0",
+                  "3.2.0",
+                  "3.3.0",
+                  "3.4.0",
+                  "3.0.29",
+                  "3.1.30",
+                  "3.2.31",
+                  "3.3.3"
+                ]
+              }
+            }
+          }
+        }
+      ]
+    supportbundler.vmware.com/manifest: tkgs-support-bundler-cm
+    appplatform.vmware.com/requires-ha-supervisor: "true"
+spec:
+  refName: tkg.vsphere.vmware.com
+  version: 3.4.1+v1.33
+  kubernetesVersionSelection:
+    constraints: '>=1.29.0'
+  template:
+    spec:
+      fetch:
+      - imgpkgBundle:
+          image: projects.packages.broadcom.com/vsphere/iaas/tkg-service/3.4.1/tkg-service:3.4.1
+      template:
+      - ytt:
+          paths:
+          - config/
+      - kbld:
+          paths:
+          - '-'
+          - .imgpkg/images.yml
+      deploy:
+      - kapp: {}
+  valuesSchema:
+    openAPIv3:
+      type: object
+      additionalProperties: false
+      properties:
+        cpVMSize:
+          type: string
+          description: cpVMSize indicates the capacity of the Supervisor Control Plane. It's derived from Supervisor's tshirt size.
+          default: LARGE
+        ssoDomain:
+          type: string
+          description: ssoDomain indicates the name of the default SSO domain configured in vCenter.
+          default: vsphere.local
+        networkProvider:
+          type: string
+          description: networkProvider indicates the Network Provider used on Supervisor. (e.g. NSX or vsphere-network)
+          default: NSX
+        tmcNamespace:
+          type: string
+          description: tmcNamespace indicates the namespace used for TMC to be deployed.
+          default: tmc-svc-namespace
+        namespacesCLIPluginVersion:
+          description: namespacesCLIPluginVersion indicates the Supervisor recommended namespaces CLIPlugin CR version.
+          type: string
+          default: v1.0.0
+        vcPublicKeys:
+          type: string
+          description: vcPublicKeys indicates the base64 encoded vCenter OIDC issuer, client audience and the public keys in JWKS format.
+          default: a2V5cw==
+          contentEncoding: base64
+        podVMSupported:
+          type: boolean
+          description: podVMSupported indicates if the Supervisor supports PodVMs.
+          default: false
+        stretchedSupervisor:
+          type: boolean
+          description: This field indicates whether the environment is a Stretched Supervisor
+          default: false
+        cloudVC:
+          type: boolean
+          description: cloudVC indicates if the vCenter is deployed on cloud.
+          default: false
+        controlPlaneCount:
+          type: integer
+          description: The value indicates the number of control planes enabled on the Supervisor.
+          default: 3
+        capabilities:
+          deprecated: true
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              value:
+                type: boolean
+            required:
+            - name
+            - value
+        capabilitiesStatus:
+          type: object
+          properties:
+            services:
+              additionalProperties:
+                additionalProperties:
+                  properties:
+                    activated:
+                      type: boolean
+                  required:
+                  - activated
+                  type: object
+                type: object
+              type: object
+            supervisor:
+              additionalProperties:
+                properties:
+                  activated:
+                    type: boolean
+                required:
+                - activated
+                type: object
+              type: object
+---
+apiVersion: data.packaging.carvel.dev/v1alpha1
+kind: PackageMetadata
+metadata:
+  name: tkg.vsphere.vmware.com
+spec:
+  displayName: Kubernetes Service
+  longDescription: Kubernetes Service is a turnkey solution for deploying, running, and managing enterprise-grade Kubernetes clusters for hosting applications on Supervisor.
+  shortDescription: Cluster management
+  providerName: VMware
+  maintainers:
+  - name: ""
+  categories:
+  - cluster management

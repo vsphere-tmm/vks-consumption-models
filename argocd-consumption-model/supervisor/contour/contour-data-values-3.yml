@@ -1,0 +1,28 @@
+contour:
+  configFileContents: {}
+  useProxyProtocol: false
+  replicas: 2
+  pspNames: ""
+  logLevel: info
+  listenIPFamily: IPv4
+envoy:
+  workload:
+    type: Deployment
+    replicas: 2
+  service:
+    type: LoadBalancer
+    externalTrafficPolicy: Cluster
+    disableWait: false
+  hostPorts:
+    enable: false
+    http: 80
+    https: 443
+  hostNetwork: false
+  terminationGracePeriodSeconds: 300
+  logLevel: info
+  pspNames: ""
+  listenIPFamily: IPv4
+certificates:
+  duration: 8760h
+  renewBefore: 360h
+enableSupervisorServiceRbac: true

@@ -1,0 +1,23 @@
+ certificates:
+   caDuration: 8760h
+   caRenewBefore: 720h
+ contour:
+   logLevel: info
+   pspNames: vmware-system-restricted
+   replicas: 2
+   useProxyProtocol: false
+ envoy:
+   hostNetwork: false
+   hostPorts:
+     enable: true
+     http: 80
+     https: 443
+   logLevel: info
+   pspNames: "vmware-system-restricted"
+   service:
+     disableWait: false
+     externalTrafficPolicy: Cluster
+     type: LoadBalancer
+   terminationGracePeriodSeconds: 300
+ infrastructure_provider: vsphere
+ namespace: tanzu-system-ingress

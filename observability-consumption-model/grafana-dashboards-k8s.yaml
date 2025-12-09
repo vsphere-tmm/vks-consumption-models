@@ -1,0 +1,52 @@
+# Global cluster overview (dotdc: k8s-views-global)
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: k8s-views-global
+  namespace: grafana        
+spec:
+  instanceSelector:
+    matchLabels:
+      dashboards: "grafana" 
+  folder: "Kubernetes"
+  url: "https://raw.githubusercontent.com/dotdc/grafana-dashboards-kubernetes/master/dashboards/k8s-views-global.json"
+  datasources:
+    - inputName: "DS_PROMETHEUS"
+      datasourceName: "Prometheus"
+
+---
+# CoreDNS dashboard
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: k8s-system-coredns
+  namespace: grafana
+spec:
+  instanceSelector:
+    matchLabels:
+      dashboards: "grafana"
+  folder: "Kubernetes"
+  url: "https://raw.githubusercontent.com/dotdc/grafana-dashboards-kubernetes/master/dashboards/k8s-system-coredns.json"
+  datasources:
+    - inputName: "DS_PROMETHEUS"
+      datasourceName: "Prometheus"
+
+
+---
+# Node Exporter Full: detailed node CPU/mem/disk/net
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: node-exporter-full
+  namespace: grafana
+spec:
+  instanceSelector:
+    matchLabels:
+      dashboards: "grafana"
+  folder: "Kubernetes"
+  grafanaCom:
+    id: 1860           # Node Exporter Full
+  datasources:
+    - inputName: "DS_PROMETHEUS"
+      datasourceName: "Prometheus"
+
