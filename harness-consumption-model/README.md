@@ -13,8 +13,8 @@ Before you start, you must configure a few things in your environment and your H
 
 | Repository Name        | Purpose                                                          | GitHub URL                                              |
 |------------------------|------------------------------------------------------------------|---------------------------------------------------------|
-| microservice-demo    | Contains the microservices source code and Dockerfiles.          | [https://github.com/rahulk010/microservice-demo.git](https://github.com/rahulk010/microservice-demo.git) |
-| helm-charts            | Contains the Helm chart templates and values.yaml files for deployment. | [https://github.com/rahulk010/helm-charts.git](https://github.com/rahulk010/helm-charts.git)             |
+| microservice-demo    | Contains the microservices source code and Dockerfiles.          | [https://github.com/vsphere-tmm/microservice-demo.git](https://github.com/vsphere-tmm/microservice-demo.git) |
+| helm-charts            | Contains the Helm chart templates and values.yaml files for deployment. | [https://github.com/vsphere-tmm/helm-charts-demo.git](https://github.com/vsphere-tmm/helm-charts-demo.git)             |
 
 > **Note:** After forking these repositories, remember to use your own repository URLs in the Harness pipeline configuration.
 
