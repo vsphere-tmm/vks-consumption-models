@@ -1,0 +1,23 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: microservices-demo
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: 'https://gitlab.content.tmm.broadcom.lab/root/app-code.git'
+    targetRevision: main
+    path: helm-charts
+    helm:
+      valueFiles:
+        - values.yaml
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true   
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
