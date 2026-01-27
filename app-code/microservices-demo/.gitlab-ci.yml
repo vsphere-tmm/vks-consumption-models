@@ -1,0 +1,80 @@
+stages:
+  - build
+  - update
+
+
+
+variables:
+  IMAGE_TAG: "${CI_COMMIT_SHA}"
+  REPO_NAME: "app"
+  REGISTRY: "harbor-test.content.tmm.broadcom.lab"
+  HARBOR_USER: "${CI_REGISTRY_USER}"
+  HARBOR_PASSWORD: "${CI_REGISTRY_PASSWORD}"
+  #SRC_DIR: "src"
+  BUILDPLATFORM: "linux/amd64"
+  DOCKER_BUILDKIT: "1" 
+
+
+before_script:
+  - echo "$HARBOR_PASSWORD" | docker login $REGISTRY -u "$HARBOR_USER" --password-stdin
+
+
+
+
+build_image:
+  stage: build
+  image: docker:latest
+
+
+  tags:
+    - k8s
+  script:
+    - |
+      for dir in src/*/; do
+        service=$(basename "$dir")
+        echo "Building $service..."
+
+        # Check if the service is cartservice and adjust the Dockerfile path
+        if [ "$service" == "cartservice" ]; then
+          dockerfile_path="$dir/src/Dockerfile"
+          build_context="$dir/src"
+        else
+          dockerfile_path="$dir/Dockerfile"
+          build_context="$dir"
+        fi
+
+        echo "Building Docker image for $service with Dockerfile at $dockerfile_path"
+        docker build --platform=$BUILDPLATFORM --build-arg BUILDPLATFORM=$BUILDPLATFORM -f $dockerfile_path -t $REGISTRY/$REPO_NAME/$service:${CI_COMMIT_SHA} $build_context
+
+        echo "Pushing Docker image for $service..."
+        docker push $REGISTRY/$REPO_NAME/$service:${CI_COMMIT_SHA}
+      done
+  
+update_helm_chart:
+  stage: update
+  image: docker:latest
+  tags:
+    - k8s
+  before_script:
+    - apk update && apk add --no-cache git curl bash
+    # Download the Go-based yq (not the Python one from apk)
+    - curl -L https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -o /usr/local/bin/yq
+    - chmod +x /usr/local/bin/yq
+  script:
+    - echo "Cloning Helm repo..."
+    - git config --global user.email "gitlab_admin_977e50@example.com"
+    - git config --global user.name "Administrator"
+    - git config --global http.sslVerify false  # Disable SSL verification temporarily
+
+    # Clone using CI_JOB_TOKEN for authentication
+    - git clone https://Administrator:${HELM_REPO_PAT}@gitlab.sfo.rainpole.io/root/app-code.git
+    - cd helm-charts
+
+    # Update values.yaml
+    - echo "Updating tag in values.yaml to ${CI_COMMIT_SHA}"
+    - yq eval ".images.tag = \"${CI_COMMIT_SHA}\"" -i values.yaml
+    
+    # Commit and push
+    - git add values.yaml
+    - git commit -m "Update image tag to ${CI_COMMIT_SHA} for ${CI_PROJECT_NAME}" || echo "No changes to commit."
+    - git push origin main
