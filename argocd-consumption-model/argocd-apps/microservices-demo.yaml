@@ -6,7 +6,9 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: 'https://gitlab.content.tmm.broadcom.lab/root/app-code.git'
+    repoURL: 'https://github.com/vsphere-tmm/vks-consumption-models.git'
+    targetRevision: HEAD
+    path: app-code
     targetRevision: main
     path: helm-charts
     helm:
