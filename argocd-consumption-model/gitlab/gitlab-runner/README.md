@@ -1,7 +1,6 @@
-First, create a wildcard cert (see certs folder)
+# First setup certs #
 
-
-Then:
+Here we use a wildcard cert
 
 
 1.    Tell gitlab to use this secret on all ingresses
@@ -61,7 +60,9 @@ kubectl -n gitlab-system patch gitlab gitlab --type=merge -p '{
       }
     }
   } } }
-}'   # change the traffic policy to allow external traffic (not sure if this is needed, but...)
+}'
+
+# change the traffic policy to allow external traffic (not sure if this is needed, but...)
 kubectl -n gitlab-system patch svc gitlab-nginx-ingress-controller --type=merge -p \
 '{"spec":{"externalTrafficPolicy":"Cluster","internalTrafficPolicy":"Cluster"}}'
 
@@ -80,6 +81,34 @@ kubectl -n gitlab-system patch gitlab gitlab --type=merge -p '{
 }'
 ```
 
-Use values.yaml:
+# Update the gitlab runner Helm values file (and update Helm package) #
 
-`helm upgrade --install gitlab-runner gitlab/gitlab-runner \\n  -n gitlab-runners -f runner-update.yaml --reuse-values`
+See the 'gitlab-runner-values.yaml' file. We need a TOML fragment
+
+```
+  config: |
+    [[runners]]
+      executor = "kubernetes"
+      [runners.kubernetes]
+        image        = "ubuntu:22.04"
+        helper_image = "harbor-test.content.tmm.broadcom.lab/library/gitlab-runner-helper:x86_64-latest"
+        poll_timeout = 600
+        privileged   = true
+ ```       
+
+ Update Helm package:
+
+ ```
+ helm upgrade gitlab-runner gitlab/gitlab-runner \
+  -n gitlab-runners \
+  -f gitlab-runner-values.yaml
+```
+
+ensure the runner pod is active
+
+```
+kubectl -n gitlab-runners get pods
+
+NAME                             READY   STATUS    RESTARTS   AGE
+gitlab-runner-5f6f44d554-5mwhx   1/1     Running   0          72s
+```
