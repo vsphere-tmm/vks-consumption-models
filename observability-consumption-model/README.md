@@ -27,7 +27,7 @@ projects.packages.broadcom.com/vsphere/supervisor/packages/2025.6.17/vks-standar
 vcf package available get cert-manager.kubernetes.vmware.com -n packages
 
 # Then install the cert manager package
-vcf package install cert-manager -p cert-manager.kubernetes.vmware.com --version <version -n packages
+vcf package install cert-manager -p cert-manager.kubernetes.vmware.com --version <version> -n packages
 
 
 # Install Contour:
@@ -92,7 +92,7 @@ kubectl create -f bundle.yaml
 
 # Create Prometheus ns and set perms
 kubectl create ns prometheus
-kubectl label --overwrite ns prometheus pod-security.kubernetes.io/enforce=privileged
+kubectl label --overwrite ns prometheus pod-security.kubernetes.io/enforce=baseline
 
 # Create a ServiceAccount
 cat << EOF | kubectl apply -f -
@@ -226,7 +226,7 @@ kubectl create secret tls monitoring-cert \
 
 ```
 
-## Define Ingress (Contour) ##
+## Define Gateway (Contour) ##
 
 Reference Contour gw doc:
 https://projectcontour.io/docs/main/guides/gateway-api/
@@ -237,7 +237,7 @@ https://projectcontour.io/docs/main/guides/gateway-api/
 
 # Create a ns for the contour gw & set perms
 kubectl  create ns projectcontour
-kubectl label --overwrite ns projectcontour pod-security.kubernetes.io/enforce=privileged
+kubectl label --overwrite ns projectcontour pod-security.kubernetes.io/enforce=baseline
 
 # Create a Contour gw class
 kubectl apply -f - <<EOF
@@ -275,7 +275,6 @@ kubectl -n prometheus get secret prometheus-prometheus \
 # create ns and label for elevated permissions
 kubectl create ns grafana
 kubectl label --overwrite ns grafana pod-security.kubernetes.io/enforce=baseline
-kubectl label --overwrite ns grafana pod-security.kubernetes.io/enforce=privileged
 
 # install via helm
 helm repo add grafana-operator https://grafana.github.io/helm-charts
@@ -330,8 +329,8 @@ Here, we'll configure a separate instance
 # Create a namespace for loki
 kubectl create ns loki
 
-# Allow privilaged pods 
-kubectl label --overwrite ns loki pod-security.kubernetes.io/enforce=privileged
+# Set pod security
+kubectl label --overwrite ns loki pod-security.kubernetes.io/enforce=baseline
 
 # Install Loki via Helm
 helm repo add grafana https://grafana.github.io/helm-charts
