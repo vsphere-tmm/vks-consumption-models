@@ -85,7 +85,7 @@ curl -s https://api.github.com/repos/prometheus-operator/prometheus-operator/rel
 LATEST=<version>
 
 # Download the Prometheus Operator (edit image registry as needed)
-curl -sL https://github.com/prometheus-operator/prometheus-operator/releases/download/${LATEST}/bundle.yaml
+curl -sL https://github.com/prometheus-operator/prometheus-operator/releases/download/${LATEST}/bundle.yaml -o bundle.yaml
 
 # Create Prometheus ns and set perms
 kubectl create ns prometheus
