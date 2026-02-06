@@ -87,12 +87,12 @@ LATEST=<version>
 # Download the Prometheus Operator (edit image registry as needed)
 curl -sL https://github.com/prometheus-operator/prometheus-operator/releases/download/${LATEST}/bundle.yaml
 
-# Apply it- this will install in the default ns (adjust as desired)
-kubectl create -f bundle.yaml
-
 # Create Prometheus ns and set perms
 kubectl create ns prometheus
 kubectl label --overwrite ns prometheus pod-security.kubernetes.io/enforce=baseline
+
+# Create prometheus resources
+kubectl -n prometheus create -f bundle.yaml
 
 # Create a ServiceAccount
 cat << EOF | kubectl apply -f -
