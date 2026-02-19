@@ -322,8 +322,6 @@ kubectl apply -f grafana-dashboards-k8s.yaml
 
 ## Configure Logging (using Loki) ##
 
-Note: If the Istio VKS package was installed, there is already an instance of Loki in 'istio-system'
-Here, we'll configure a separate instance
 
 ```
 # Create a namespace for loki
