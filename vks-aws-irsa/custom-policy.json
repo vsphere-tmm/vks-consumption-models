@@ -1,0 +1,40 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Custom IAM policy for VKS workload cluster",
+  "Disclaimer": "This script is provided as is without warranty.Use at your own risk. Not supported",
+  "Parameters": {
+    "ExamplePodRoleName": {
+      "Type": "String",
+      "Description": "Name of the example pod IAM role to attach this policy to"
+    },
+    "ClusterName": {
+      "Type": "String",
+      "Description": "Cluster name for tagging"
+    }
+  },
+  "Resources": {
+    "ExampleCustomPolicy": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyName": { "Fn::Sub": "vks-${ClusterName}-custom-policy" },
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [ "s3:ListBucket" ],
+              "Resource": "*"
+            }
+          ]
+        },
+        "Roles": [ { "Ref": "ExamplePodRoleName" } ]
+      }
+    }
+  },
+  "Outputs": {
+    "CustomPolicyArn": {
+      "Description": "ARN of the custom policy created",
+      "Value": { "Ref": "ExampleCustomPolicy" }
+    }
+  }
+}

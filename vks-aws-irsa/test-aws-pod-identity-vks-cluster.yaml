@@ -1,0 +1,109 @@
+---
+# Example Service Account Secrets for Cluster
+#
+# DISCLAIMER: This script is provided "as is" without warranty.
+# Use at your own risk. Not supported.
+#
+# These secrets MUST be created BEFORE the Cluster object.
+# CAPI will use these pre-created secrets instead of generating new keys.
+#
+# This keys were generated prior to running the generate-oidc-files.sh script using command.
+# Generate RSA key pair:
+#   openssl genrsa -out sa.key 4096
+#   openssl rsa -in sa.key -pubout -out sa.pub
+#
+# Create the secret in the vSphere namespace of the cluster.  This will be picked up on the cluster and created as a service account
+apiVersion: v1
+kind: Secret
+metadata:
+  name: test-aws-pod-identity-sa
+  namespace: aws-irsa-ns
+type: cluster.x-k8s.io/secret
+stringData:
+  tls.crt: |
+    -----BEGIN PUBLIC KEY-----
+    MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAvjIg9iHF+BKYqTiq7aGS
+    {redacted}
+    -----END PUBLIC KEY-----
+  tls.key: |
+    -----BEGIN PRIVATE KEY-----
+    MIIJQwIBADANBgkqhkiG9w0BAQEFAASC39fj9d93EAAoICAQC+MiD2IcX4Epip
+    {redcated}
+    -----END PRIVATE KEY-----
+---
+# Example Cluster Manifest for Supervisor Cluster
+#
+# This file creates a workload cluster in the VKS supervisor cluster.
+# Apply this to the SUPERVISOR cluster, not the workload cluster.
+#
+# Prerequisites:
+# 1. Create service account secrets FIRST (see above)
+# 2. Apply the custom ClusterClass to supervisor (custom-clusterclass-aws-pod-identity.yaml)
+# 3. Create S3 bucket and upload OIDC discovery files:
+#    - Upload /.well-known/openid-configuration to S3
+#    - Upload /keys.json (JWKS) to S3 (using the public key above)
+#    - Ensure S3 bucket is publicly readable
+# 4. Register the OIDC provider in AWS IAM:
+#.   - Value from OIDC Provider: https://example-vks-oidc.s3.us-west-2.amazonaws.com/t2-aws-pod-identity
+#    - S3 structure: region/zone/namespace/cluster-name
+#    - Fetch JWKS from S3 bucket to register thumbprint
+# 5. Configure IAM roles with appropriate trust policies
+#
+# Usage:
+#    # First, edit the secrets above with your actual keys
+#    kubectl apply -f example-cluster.yaml
+#
+# After cluster is ready, see example-workload.yaml for pod configurations
+# that run IN the workload cluster.
+#
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  name: test-aws-pod-identity
+  namespace: aws-irsa-ns
+  annotations:
+    # aws iam list-open-id-connect-providers
+    vks.vmware.com/oidc-provider-arn: "arn:aws:iam::12345678910:oidc-provider/example-vks-oidc.s3.us-west-2.amazonaws.com/t2-aws-pod-identity"  
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks:
+        - 192.168.0.0/16
+    services:
+      cidrBlocks:
+        - 198.51.100.0/12
+    serviceDomain: cluster.local
+  topology:
+    # Name of Custom Cluster Class
+    class: aws-irsa-v3.4.0-custom-class
+    # Namesapce of Custom Cluster Class
+    classNamespace: vmware-system-vks-public   
+    version: v1.33.3---vmware.1-fips-vkr.1
+    variables:
+    # Service account issuer for AWS pod identity
+    # If you are hosting your own OIDC discovery documents in S3, the URL structure typically looks like: https://<bucket>.s3.<region>.amazonaws.com/<optional-path>/.well-known/openid-configuration
+    # The Identity Provider URL that AWS IAM sees must be the root of your OIDC provider, e.g.: https://my-oidc-bucket.s3.us-west-2.amazonaws.com/ClusterName
+    # In this example the my-oidc-bucket is t2-vks-oidc and clustername is t2-aws-pod-identity
+      - name: serviceAccountIssuer
+        value: "https://example-vks-oidc.s3.us-west-2.amazonaws.com/test-aws-pod-identity"    
+      - name: vmClass
+        value: best-effort-medium
+      - name: storageClass
+        value: vsan-default-storage-policy
+      - name: vsphereOptions
+        value:
+          persistentVolumes:
+            defaultStorageClass: vsan-default-storage-policy
+    controlPlane:
+      replicas: 1
+      metadata:
+        annotations:
+          run.tanzu.vmware.com/resolve-os-image: "os-name=ubuntu,os-version=22.04"
+    workers:
+      machineDeployments:
+        - class: node-pool
+          name: np01
+          replicas: 2
+          metadata:
+            annotations:
+              run.tanzu.vmware.com/resolve-os-image: "os-name=ubuntu,os-version=22.04"

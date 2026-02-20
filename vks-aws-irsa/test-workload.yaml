@@ -1,0 +1,51 @@
+---
+# DISCLAIMER: This script is provided "as is" without warranty.
+# Use at your own risk. Not supported.
+#
+# ServiceAccount with AWS IAM role annotation
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: aws-s3-reader
+  namespace: default
+  annotations:
+    eks.amazonaws.com/role-arn: "arn:aws:iam::12345678910:role/vks-t2-aws-pod-identity-example-pod-role"
+---
+# Example Pod using the ServiceAccount
+apiVersion: v1
+kind: Pod
+metadata:
+  name: aws-cli-test
+  namespace: default
+spec:
+  serviceAccountName: aws-s3-reader
+  containers:
+  - name: aws-cli
+    image: amazon/aws-cli:latest
+    command:
+    - sleep
+    - "3600"
+    resources:
+      requests:
+        memory: "64Mi"
+        cpu: "100m"
+      limits:
+        memory: "128Mi"
+        cpu: "200m"
+# Example Workload Resources for Guest Cluster
+#
+# These resources are applied to the WORKLOAD (guest) cluster, NOT the supervisor cluster.
+#
+# Prerequisites:
+# 1. Workload cluster is created using custom-aws-pod-identity-v3.4.0 ClusterClass
+# 2. AWS IAM OIDC provider is registered
+# 3. IAM role is created with appropriate trust policy
+# 4. Get kubeconfig for workload cluster:
+#    kubectl get secret <cluster-name>-kubeconfig -n <namespace> -o jsonpath='{.data.value}' | base64 -d > workload-kubeconfig
+#
+# Apply to workload cluster:
+#    kubectl --kubeconfig=workload-kubeconfig apply -f example-workload.yaml
+#
+# Test AWS access (in the pod):
+#   kubectl --kubeconfig=workload-kubeconfig exec aws-cli-test -- aws sts get-caller-identity
+#   kubectl --kubeconfig=workload-kubeconfig exec aws-cli-test -- aws s3 ls

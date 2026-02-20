@@ -1,0 +1,112 @@
+# Custom ClusterClass for AWS EKS Pod Identity Integration
+# Based on builtin-generic-v3.4.0
+#
+# NOT SUPPORTED BY BROADCOM WITHOUT EXPRESS CONSENT
+# DISCLAIMER: This script is provided "as is" without warranty.
+# Use at your own risk. Not supported.
+#
+# This ClusterClass uses an inline JSONPatch to configure the service-account-issuer
+# flag. Kubeadm automatically handles service account key generation and configuration.
+#
+# The only modification needed is passing the .cluster.spec.variables.serviceAccountIssuer in
+# the VKS cluster manifest instead of the default Kubernetes API server URL. 
+# This allows AWS IAM to validate tokens via OIDC provider registration.  The default 
+# serviceAccountIssuer defined in this clusterclass is just a placeholder to avoid errors.
+
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: ClusterClass
+metadata:
+  labels:
+  name: aws-irsa-v3.4.0-custom-class
+  namespace: vmware-system-vks-public
+spec:
+  controlPlane:
+    machineHealthCheck:
+      maxUnhealthy: 100%
+      nodeStartupTimeout: 2h0m0s
+      unhealthyConditions:
+      - status: Unknown
+        timeout: 5m0s
+        type: Ready
+      - status: "False"
+        timeout: 12m0s
+        type: Ready
+    machineInfrastructure:
+      ref:
+        apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
+        kind: VSphereMachineTemplate
+        name: tkc-control-plane-v3.4.0
+        namespace: vmware-system-vks-public
+    metadata:
+      annotations:
+        run.tanzu.vmware.com/resolve-os-image: os-name=photon
+    ref:
+      apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+      kind: KubeadmControlPlaneTemplate
+      name: tkc-control-plane-v3.4.0
+      namespace: vmware-system-vks-public
+  infrastructure:
+    ref:
+      apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
+      kind: VSphereClusterTemplate
+      name: tkc-infrastructure-v3.4.0
+      namespace: vmware-system-vks-public
+  patches:
+    # Inline JSONPatch to add service-account-issuer flag
+  - name: service-account-issuer
+    description: Configure custom OIDC issuer for AWS pod identity
+    definitions:
+    - selector:
+        apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+        kind: KubeadmControlPlaneTemplate
+        matchResources:
+          controlPlane: true
+      jsonPatches:
+      - op: add
+        path: /spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/service-account-issuer
+        valueFrom:
+          template: '{{ .serviceAccountIssuer }}'
+  - external:
+      discoverVariablesExtension: discover-variables.runtime-extension
+      generateExtension: generate-patches.runtime-extension
+      settings:
+        version: v3.4.0
+    name: default
+  # Define variable for service account issuer and bogus default value
+  variables:
+  - name: serviceAccountIssuer
+    required: true
+    schema:
+      openAPIV3Schema:
+        type: string
+        default: "https://bucket-name.s3.region.amazonaws.com/vks-cluster-name"
+        description: "OIDC issuer URL for service account tokens (must match AWS IAM OIDC provider and S3 bucket structure)"
+  workers:
+    machineDeployments:
+    - class: node-pool
+      machineHealthCheck:
+        maxUnhealthy: 100%
+        nodeStartupTimeout: 2h0m0s
+        unhealthyConditions:
+        - status: Unknown
+          timeout: 5m0s
+          type: Ready
+        - status: "False"
+          timeout: 12m0s
+          type: Ready
+      template:
+        bootstrap:
+          ref:
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+            kind: KubeadmConfigTemplate
+            name: tkc-md-v3.4.0
+            namespace: vmware-system-vks-public
+        infrastructure:
+          ref:
+            apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
+            kind: VSphereMachineTemplate
+            name: tkc-md-v3.4.0
+            namespace: vmware-system-vks-public
+        metadata:
+          annotations:
+            run.tanzu.vmware.com/resolve-os-image: os-name=photon

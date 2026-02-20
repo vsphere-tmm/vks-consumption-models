@@ -1,0 +1,175 @@
+# cloudformation-oidc-setup.yaml - This file will do the following.
+#   - Create S3 bucket used for storing OIDC files
+#   - Create bucket policy allowing Public Read on the bucket (required for OIDC)
+#   - Create OIDC Identity Provider
+#   - Create example Role that the POD Idenity will assume
+#   - Create a Policy that links to example Role
+#
+# DISCLAIMER: This script is provided "as is" without warranty.
+# Use at your own risk. Not supported.
+
+# To work with the AWS CLI the custom role and policy are created via a seperate custom-policy.json
+# To use this you need to rolle the cloudformation template and policy.json into a cloud formation package
+#
+# Create CloudFoundationStack
+
+# Files
+# ├── .cfn
+# │   └── packaged.yaml                       <-- Will be created by deploy-full.sh
+# ├── cloudformation-oidc-setup.yaml.         <-- this file - cloudformation-template
+# ├── custom-policy.json                      <-- custom policy role is called in the cloudformation-oidc-setup.yaml CustomPolicyStack section
+# ├── deploy-full.sh                          <-- edit fail to fill in variables section and run to create and deploy the package (create the stacks)
+
+
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'AWS OIDC Provider and S3 bucket for VKS workload cluster pod identity'
+
+Parameters:
+  BucketName:
+    Type: String
+    Default: example-vks-oidc
+    Description: S3 bucket name for OIDC discovery documents
+
+  Region:
+    Type: String
+    Default: us-west-2
+    Description: VKS cluster region identifier
+
+  ClusterNamespace:
+    Type: String
+    Default: default
+    Description: Kubernetes namespace where cluster is deployed
+
+  ServiceAccountName:
+    Type: String
+    Default: aws-s3-reader
+    Description: Service account to bind role to on VKS cluster
+
+  ClusterName:
+    Type: String
+    Default: test-aws-pod-identity
+    Description: VKS workload cluster name
+
+  S3Thumbprint:
+    Type: String
+    Default: '3a064f2baf2796acd1667736adb54af8644a26d2'
+    Description: Thumbprint of S3 Region us-west-2
+
+Resources:
+  # S3 Bucket for OIDC Discovery Documents
+  OIDCDiscoveryBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref BucketName
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+      VersioningConfiguration:
+        Status: Enabled
+      Tags:
+        - Key: Purpose
+          Value: VKS-OIDC-Discovery
+        - Key: Cluster
+          Value: !Ref ClusterName
+
+  # Bucket Policy for Public Read Access
+  OIDCDiscoveryBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref OIDCDiscoveryBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: PublicReadGetObject
+            Effect: Allow
+            Principal: '*'
+            Action:
+              - s3:GetObject
+            Resource: !Sub 'arn:aws:s3:::${BucketName}/*'
+
+  # IAM OIDC Identity Provider
+  OIDCProvider:
+    Type: AWS::IAM::OIDCProvider
+    Properties:
+      Url: !Sub 'https://${BucketName}.s3.${Region}.amazonaws.com/${ClusterName}'
+      ClientIdList:
+        - sts.amazonaws.com
+      ThumbprintList:
+        - !Ref S3Thumbprint
+      Tags:
+        - Key: Cluster
+          Value: !Ref ClusterName
+
+  # Example IAM Role for Pod Identity (CLI-compatible)
+  ExamplePodRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub 'vks-${ClusterName}-example-pod-role'
+      Description: Example IAM role for VKS workload cluster pods
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !GetAtt OIDCProvider.Arn
+            Action: 'sts:AssumeRoleWithWebIdentity'
+            Condition:
+              StringEquals:
+                  "sts.amazonaws.com:aud": "sts.amazonaws.com"
+                  "sts.amazonaws.com:sub": !Sub "system:serviceaccount:${ClusterNamespace}:${ServiceAccountName}"
+
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+      Tags:
+        - Key: Cluster
+          Value: !Ref ClusterName
+
+  # Nested stack for the ExampleCustomPolicy (moved out of this template)
+  CustomPolicyStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+#      TemplateURL: !Sub 'https://${BucketName}.s3.${Region}.amazonaws.com/custom-policy.json'
+#      TemplateURL: https://raw.githubusercontent.com/<ORG_OR_USER>/<REPO>/<BRANCH_OR_TAG>/custom-policy.json
+#      TemplateURL: https://raw.githubusercontent.com/example/vks-cloudformation/v1.0.0/custom-policy.json Use TAG not Branch
+      TemplateURL: custom-policy.json
+      Parameters:
+        ExamplePodRoleName: !Ref ExamplePodRole
+        ClusterName: !Ref ClusterName
+
+Outputs:
+  OIDCProviderArn:
+    Description: ARN of the OIDC Identity Provider
+    Value: !GetAtt OIDCProvider.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-OIDCProviderArn'
+
+  OIDCProviderURL:
+    Description: OIDC Provider URL (use as service-account-issuer)
+    Value: !Sub 'https://${BucketName}.s3.${Region}.amazonaws.com/${ClusterName}'
+    Export:
+      Name: !Sub '${AWS::StackName}-OIDCProviderURL'
+
+  S3BucketName:
+    Description: S3 bucket for OIDC discovery documents
+    Value: !Ref OIDCDiscoveryBucket
+    Export:
+      Name: !Sub '${AWS::StackName}-S3Bucket'
+
+  ExamplePodRoleArn:
+    Description: ARN of example IAM role for pod identity
+    Value: !GetAtt ExamplePodRole.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-ExamplePodRoleArn'
+
+  UploadInstructions:
+    Description: Instructions for uploading OIDC files
+    Value: !Sub |
+      Upload the following files to S3:
+
+      1. OIDC Discovery Document:
+         aws s3 cp openid-configuration.json s3://${BucketName}.s3.${Region}.amazonaws.com/${ClusterName}/.well-known/openid-configuration --content-type application/json
+
+      2. JWKS (Public Keys):
+         aws s3 cp keys.json s3://${BucketName}.s3.${Region}.amazonaws.com/${ClusterName}/keys.json --content-type application/json
